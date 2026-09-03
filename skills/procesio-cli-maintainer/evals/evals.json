@@ -1,0 +1,8 @@
+{
+  "skill_name": "procesio-cli-maintainer",
+  "evals": [
+    {"id": 1, "prompt": "Add a new PROCESIO tool action.", "expected_output": "Starts from a failing contract test, updates manifest and implementation together, regenerates docs, and verifies client JSON."},
+    {"id": 2, "prompt": "Add an MCP resource reader.", "expected_output": "Preserves existing calls, bounds and confines access, tests traversal and structured errors."},
+    {"id": 3, "prompt": "Run a process in my workspace.", "expected_output": "Routes to procesio-cli because the user is operating the platform, not maintaining the repository."}
+  ]
+}

@@ -1,9 +1,4 @@
 {
-  "purpose": "Temporary Gate 1 waivers for defects inherited from the upstream skill corpus. Resolved findings may disappear; no new finding is allowed.",
-  "allow": [
-    {"skill": "procesio-expert", "code": "missing-reference", "path": "*"},
-    {"skill": "procesio-expert", "code": "asset-in-scripts", "path": "scripts/eval-template.html"},
-    {"skill": "sql-server-optimizer", "code": "nested-resource", "path": "references/scripts/*"},
-    {"skill": "sql-server-optimizer", "code": "script-in-references", "path": "references/scripts/*"}
-  ]
+  "purpose": "No inherited validation findings remain after Gate 3.",
+  "allow": []
 }
