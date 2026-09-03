@@ -67,7 +67,7 @@
     {
       "id": 5,
       "name": "behavioral-retuning",
-      "status": "infrastructure-complete",
+      "status": "pending-external-run",
       "evidence": [
         "scripts/run-skill-behavior-evals.py",
         "scripts/pi-skill-eval-runner.py",
