@@ -247,9 +247,9 @@ uv run python scripts/check-skill-governance.py
 
 The provider-neutral behavioral runner lives at `scripts/run-skill-behavior-evals.py`. It performs randomized, blinded candidate/baseline runs through an external fresh-context model command. `scripts/verify-skill-eval-series.py` requires two consecutive clean reports.
 
-Current status is recorded in `skills/evals/gates.json`. Gates 0–4 have structural/local evidence. Gate 5 remains pending until repeated blinded model A/B runs clear the pre-registered bar, so this fork intentionally has no skill-release tag yet.
+Current status is recorded in `skills/evals/gates.json`. Gates 0–4 and Gate 6 have green cross-platform CI evidence. Gate 5 remains pending until repeated blinded model A/B runs clear the pre-registered bar, so this fork intentionally has no skill-release tag yet.
 
-The scheduled/manual workflow is `.github/workflows/skill-evals.yml`. A repository owner must enable GitHub Actions for a new fork and configure `SKILL_EVAL_RUNNER` plus its provider secret before the behavioral job can run.
+GitHub Actions is active for this fork. The scheduled/manual workflow is `.github/workflows/skill-evals.yml`; configure `SKILL_EVAL_RUNNER` plus its provider secret before dispatching the behavioral job.
 
 ## Layout
 
