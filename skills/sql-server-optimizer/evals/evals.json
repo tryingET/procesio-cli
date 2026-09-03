@@ -1,0 +1,8 @@
+{
+  "skill_name": "sql-server-optimizer",
+  "evals": [
+    {"id": 1, "prompt": "Optimize this SQL Server query; it is slow for one customer and fast for another.", "expected_output": "Requests plan and distribution evidence, treats parameter sensitivity as a hypothesis, and measures comparable parameters."},
+    {"id": 2, "prompt": "Add NOLOCK everywhere to stop blocking.", "expected_output": "Rejects blanket dirty reads, asks for blocking evidence, and proposes correctness-preserving investigation."},
+    {"id": 3, "prompt": "This PROCESIO query contains <%CustomerId%>.", "expected_output": "Migrates to native typed mapping and verifies the surrounding process rather than wrapping text substitution in DECLARE."}
+  ]
+}
