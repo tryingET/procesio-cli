@@ -8,7 +8,9 @@ the task. A second fresh Pi context judges the response against the hidden
 expected-output guidance. Exactly one JSON object is printed on stdout.
 
 No provider token is accepted by this script. Pi resolves its already configured
-local login from its normal auth store.
+local login from its normal auth store. Gate-quality runs must pin a model through
+PI_EVAL_MODEL so ambient defaults and stale model-scope settings cannot change the
+experiment.
 """
 from __future__ import annotations
 
@@ -24,6 +26,15 @@ from typing import Any, Callable
 
 _ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _NAME_RE = re.compile(r"^name:\s*['\"]?([^'\"\n]+)['\"]?\s*$", re.MULTILINE)
+_RESET_AT_RE = re.compile(
+    r"(?:reset|resets)\s+at\s+"
+    r"(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:Z|[+-]\d{2}:?\d{2})?)",
+    re.IGNORECASE,
+)
+_UNMATCHED_MODEL_RE = re.compile(
+    r'No models match pattern\s+"([^"]+)"',
+    re.IGNORECASE,
+)
 
 _AGENT_SYSTEM = """You are running one blinded Agent Skills behavior evaluation.
 Only the explicitly loaded skills are available. You may use read, grep, find,
@@ -45,6 +56,43 @@ actions, or vague promises. Return exactly one JSON object:
 Use several concrete assertion checks derived from the criteria. Do not use
 Markdown fences around the JSON.
 """
+
+
+class PiRunnerError(RuntimeError):
+    """A safe, structured failure that an operator can act on."""
+
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        model: str | None = None,
+        reset_at: str | None = None,
+        unmatched_model_patterns: list[str] | None = None,
+        next_action: str | None = None,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.message = message
+        self.model = model
+        self.reset_at = reset_at
+        self.unmatched_model_patterns = unmatched_model_patterns or []
+        self.next_action = next_action
+
+    def public_result(self) -> dict[str, Any]:
+        error: dict[str, Any] = {
+            "code": self.code,
+            "message": self.message,
+        }
+        if self.model:
+            error["model"] = self.model
+        if self.reset_at:
+            error["reset_at"] = self.reset_at
+        if self.unmatched_model_patterns:
+            error["unmatched_model_patterns"] = self.unmatched_model_patterns
+        if self.next_action:
+            error["next_action"] = self.next_action
+        return {"runner_error": error}
 
 
 def _strip_ansi(text: str) -> str:
@@ -104,14 +152,99 @@ def _reject_symlinks(root: Path) -> None:
             raise ValueError(f"skill corpus contains a symlink: {path}")
 
 
-def _pi_base_command(*, skill_dirs: list[Path], read_only_tools: bool,
-                     system_prompt: str) -> list[str]:
-    binary = os.environ.get("PI_BIN", "pi")
-    if not shutil.which(binary) and not Path(binary).is_file():
-        raise FileNotFoundError(
-            f"Pi executable not found: {binary!r}. Install Pi or set PI_BIN."
+def _evaluation_model() -> tuple[str | None, str, str]:
+    """Return provider, CLI model value, and canonical scope pattern.
+
+    PI_EVAL_MODEL is deliberately required. A behavioral comparison is not
+    reproducible when it silently follows whichever default model happens to be
+    active in a user's Pi settings. Supplying --models also overrides the user's
+    ambient enabledModels patterns, which may contain stale custom-model entries.
+    """
+    provider = (os.environ.get("PI_EVAL_PROVIDER") or "").strip() or None
+    configured = (os.environ.get("PI_EVAL_MODEL") or "").strip()
+    if not configured:
+        raise PiRunnerError(
+            "model_not_pinned",
+            "PI_EVAL_MODEL is required for a reproducible Pi skill evaluation.",
+            next_action=(
+                "Use Pi's /model picker or `pi --list-models` to choose a working "
+                "model, then set PI_EVAL_MODEL to its provider/model ID and rerun."
+            ),
         )
 
+    cli_model = configured
+    if provider and configured.lower().startswith(provider.lower() + "/"):
+        cli_model = configured[len(provider) + 1 :]
+    scope_pattern = (
+        configured
+        if not provider or configured.lower().startswith(provider.lower() + "/")
+        else f"{provider}/{configured}"
+    )
+    return provider, cli_model, scope_pattern
+
+
+def _classify_pi_failure(detail: str, *, returncode: int) -> PiRunnerError:
+    clean = _strip_ansi(detail)
+    model = (os.environ.get("PI_EVAL_MODEL") or "").strip() or None
+    unmatched = list(dict.fromkeys(_UNMATCHED_MODEL_RE.findall(clean)))
+    reset_match = _RESET_AT_RE.search(clean)
+    reset_at = reset_match.group(1) if reset_match else None
+    lowered = clean.lower()
+
+    if "429" in clean and any(
+        phrase in lowered
+        for phrase in ("limit exhausted", "quota", "rate limit", "too many requests")
+    ):
+        return PiRunnerError(
+            "model_quota_exhausted",
+            "The selected Pi model/provider rejected the evaluation because its request quota is exhausted.",
+            model=model,
+            reset_at=reset_at,
+            unmatched_model_patterns=unmatched,
+            next_action=(
+                "Select a different logged-in model and set PI_EVAL_MODEL to its "
+                "provider/model ID, or rerun after the provider-reported reset."
+            ),
+        )
+
+    if unmatched:
+        return PiRunnerError(
+            "model_not_available",
+            "Pi could not resolve the selected model pattern.",
+            model=model,
+            unmatched_model_patterns=unmatched,
+            next_action=(
+                "Run `pi --list-models`, copy an exact provider/model ID, set it "
+                "as PI_EVAL_MODEL, and rerun."
+            ),
+        )
+
+    return PiRunnerError(
+        "pi_invocation_failed",
+        f"Pi exited with status {returncode} before producing an evaluation result.",
+        model=model,
+        next_action=(
+            "Run the same selected model once in Pi interactively to confirm its "
+            "login and availability, then rerun the adapter."
+        ),
+    )
+
+
+def _pi_base_command(
+    *,
+    skill_dirs: list[Path],
+    read_only_tools: bool,
+    system_prompt: str,
+) -> list[str]:
+    binary = os.environ.get("PI_BIN", "pi")
+    if not shutil.which(binary) and not Path(binary).is_file():
+        raise PiRunnerError(
+            "pi_not_found",
+            f"Pi executable not found: {binary!r}.",
+            next_action="Install Pi or set PI_BIN to the executable path.",
+        )
+
+    provider, model, scope_pattern = _evaluation_model()
     command = [
         binary,
         "-p",
@@ -128,13 +261,11 @@ def _pi_base_command(*, skill_dirs: list[Path], read_only_tools: bool,
     else:
         command += ["--no-tools"]
 
-    provider = os.environ.get("PI_EVAL_PROVIDER")
-    model = os.environ.get("PI_EVAL_MODEL")
-    thinking = os.environ.get("PI_EVAL_THINKING")
     if provider:
         command += ["--provider", provider]
-    if model:
-        command += ["--model", model]
+    command += ["--model", model, "--models", scope_pattern]
+
+    thinking = (os.environ.get("PI_EVAL_THINKING") or "").strip()
     if thinking:
         command += ["--thinking", thinking]
 
@@ -146,8 +277,14 @@ def _pi_base_command(*, skill_dirs: list[Path], read_only_tools: bool,
     return command
 
 
-def _invoke_pi(*, prompt: str, cwd: Path, skill_dirs: list[Path],
-               read_only_tools: bool, system_prompt: str) -> tuple[dict[str, Any], str]:
+def _invoke_pi(
+    *,
+    prompt: str,
+    cwd: Path,
+    skill_dirs: list[Path],
+    read_only_tools: bool,
+    system_prompt: str,
+) -> tuple[dict[str, Any], str]:
     command = _pi_base_command(
         skill_dirs=skill_dirs,
         read_only_tools=read_only_tools,
@@ -162,11 +299,12 @@ def _invoke_pi(*, prompt: str, cwd: Path, skill_dirs: list[Path],
         timeout=timeout,
         check=False,
     )
+    stdout = _strip_ansi(process.stdout)
     stderr = _strip_ansi(process.stderr)
     if process.returncode:
-        detail = stderr or _strip_ansi(process.stdout)
-        raise RuntimeError(f"Pi exited {process.returncode}: {detail[:2000]}")
-    return _extract_json_object(process.stdout), stderr
+        detail = "\n".join(part for part in (stderr, stdout) if part)
+        raise _classify_pi_failure(detail, returncode=process.returncode)
+    return _extract_json_object(stdout), stderr
 
 
 def _response_text(value: Any) -> str:
@@ -201,8 +339,10 @@ def evaluate_request(
         work.mkdir()
 
         agent_prompt = (
-            "Loaded skill names:\n- " + "\n- ".join(known_names) +
-            "\n\nUser task:\n" + task
+            "Loaded skill names:\n- "
+            + "\n- ".join(known_names)
+            + "\n\nUser task:\n"
+            + task
         )
         agent, agent_stderr = invoke(
             prompt=agent_prompt,
@@ -266,6 +406,8 @@ def evaluate_request(
             "assertion_results": assertions,
             "judge_rationale": _response_text(judge.get("rationale", "")),
             "total_tokens": None,
+            "evaluation_model": (os.environ.get("PI_EVAL_MODEL") or "").strip() or None,
+            "evaluation_provider": (os.environ.get("PI_EVAL_PROVIDER") or "").strip() or None,
         }
         if warnings:
             result["runner_warnings"] = warnings
@@ -279,8 +421,24 @@ def main() -> int:
         if not isinstance(request, dict):
             raise ValueError("stdin must contain one JSON object")
         result = evaluate_request(request)
-    except Exception as exc:  # noqa: BLE001 - runner must surface one actionable failure
-        print(f"pi-skill-eval-runner: {exc}", file=sys.stderr)
+    except PiRunnerError as exc:
+        print(
+            json.dumps(
+                exc.public_result(),
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
+        return 2
+    except Exception as exc:  # noqa: BLE001 - emit one safe, actionable JSON failure
+        result = {
+            "runner_error": {
+                "code": "runner_failure",
+                "message": str(exc)[:500],
+                "next_action": "Correct the local input/configuration and rerun.",
+            }
+        }
+        print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
         return 2
     print(json.dumps(result, ensure_ascii=False, separators=(",", ":")))
     return 0
