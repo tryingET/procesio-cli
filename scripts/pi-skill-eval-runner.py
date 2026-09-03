@@ -30,8 +30,9 @@ _AGENT_SYSTEM = """You are running one blinded Agent Skills behavior evaluation.
 Only the explicitly loaded skills are available. You may use read, grep, find,
 and ls only to inspect those skill files. Do not execute the user's requested
 operation, access a network service, mutate files, or mention evaluation mechanics.
-Select at most one relevant skill and answer the user as that skill directs. If no
-loaded skill applies, select null and answer without pretending one applies.
+Select at most one relevant skill, inspect that skill's full SKILL.md before
+answering, and answer the user as the skill directs. If no loaded skill applies,
+select null and answer without pretending one applies.
 Your final output must be exactly one JSON object with these fields:
 {"selected_skill":"an exact loaded skill name or null","response":"the assistant answer"}
 Do not use Markdown fences around the JSON.
@@ -155,7 +156,9 @@ def _pi_base_command(*, skill_dirs: list[Path], read_only_tools: bool,
 
     for directory in skill_dirs:
         command += ["--skill", str(directory)]
-    command += ["--append-system-prompt", system_prompt]
+    # Replace, rather than append to, any user-level custom system prompt so the
+    # A/A and A/B runs differ only by the supplied skill corpus.
+    command += ["--system-prompt", system_prompt]
     return command
 
 
