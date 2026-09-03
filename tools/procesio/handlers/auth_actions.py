@@ -181,7 +181,7 @@ ACTIONS = {
     ),
     "check-auth": ActionDef(
         func=check_auth, add_args=add_profile_arg, needs_client=True,
-        description="Hit a scope-appropriate live read endpoint to verify the profile authenticates.",
+        description="Hit a live read endpoint to verify the profile authenticates.",
     ),
     "logout": ActionDef(
         func=logout, add_args=add_profile_arg, needs_client=True,
