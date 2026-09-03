@@ -1,27 +1,25 @@
-"""Load a registered skill so an agent (or Claude) can use it.
+"""Load a registered skill or one of its bundled resources.
 
 A skill is instruction/reference content, not an executable. "Using" one means
-loading its SKILL.md and following it. This is the programmatic entry point.
+loading its SKILL.md and following it, then retrieving only the referenced
+resource needed for the current task.
 
 Usage:
-  python scripts/get-skill.py <name>             # metadata only
-  python scripts/get-skill.py <name> --content    # + full SKILL.md body & asset lists
+  python scripts/get-skill.py <name>                         # metadata only
+  python scripts/get-skill.py <name> --content               # body + resource index
+  python scripts/get-skill.py <name> --index                 # resource index only
+  python scripts/get-skill.py <name> --resource references/x.md
 
-Output (JSON, one object on stdout):
-  { name, description, version, path, skill_md }
-  with --content also: { body, references:[...], scripts:[...], assets:[...] }
-On failure: { "error": { code, message, details } }, non-zero exit.
+Output is one JSON object on stdout. Failures use the repository's stable error
+envelope and a non-zero exit code.
 """
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
-# Auto-switch to the project's .venv Python if we were launched with a different one.
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
-# .venv layout is per-OS: Scripts/python.exe on Windows, bin/python everywhere
-# else. Hardcoding the Windows path made this a silent no-op on macOS/Linux,
-# where the script then ran on whatever interpreter happened to invoke it.
 _VENV_PY = (_PROJECT_ROOT / ".venv" / "Scripts" / "python.exe" if sys.platform == "win32"
             else _PROJECT_ROOT / ".venv" / "bin" / "python")
 if _VENV_PY.exists() and Path(sys.executable).resolve() != _VENV_PY.resolve():
@@ -32,55 +30,76 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 
 from registry import get_skill  # noqa: E402
 from tools._lib.io import emit, fail  # noqa: E402
+from tools._lib.skill_resources import (  # noqa: E402
+    SkillResourceError,
+    SkillResourceNotFound,
+    SkillResourceNotText,
+    read_text_resource,
+    resource_index,
+)
 
 
 def _strip_frontmatter(text: str) -> str:
-    """Return the SKILL.md body with the leading `---`-delimited frontmatter removed."""
+    """Return the SKILL.md body with leading YAML frontmatter removed."""
     lines = text.splitlines(keepends=True)
     if lines and lines[0].strip() == "---":
-        for i in range(1, len(lines)):
-            if lines[i].strip() == "---":
-                return "".join(lines[i + 1:]).lstrip("\n")
-    return text  # no frontmatter -> return as-is
+        for index in range(1, len(lines)):
+            if lines[index].strip() == "---":
+                return "".join(lines[index + 1:]).lstrip("\n")
+    return text
 
 
-def _rel_files(root: Path, subdir: str) -> list[str]:
-    d = root / subdir
-    if not d.is_dir():
-        return []
-    return sorted(str(p.relative_to(root)).replace("\\", "/") for p in d.rglob("*") if p.is_file())
+def _parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("name", help="registered skill name")
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--content", action="store_true",
+                       help="include SKILL.md body and resource index")
+    group.add_argument("--index", action="store_true",
+                       help="include resource index without the body")
+    group.add_argument("--resource", metavar="PATH",
+                       help="read one UTF-8 file below references/, scripts/, or assets/")
+    return parser
 
 
-def main() -> int:
-    args = [a for a in sys.argv[1:]]
-    want_content = "--content" in args
-    positionals = [a for a in args if not a.startswith("-")]
-    if not positionals or "-h" in args or "--help" in args:
-        print(__doc__)
-        return 0
-
-    name = positionals[0]
+def main(argv: list[str] | None = None) -> int:
+    args = _parser().parse_args(argv)
     try:
-        m = get_skill(name)
-    except KeyError as e:
-        fail("not_found", str(e), {"name": name}, exit_code=2)
+        manifest = get_skill(args.name)
+    except KeyError as exc:
+        fail("not_found", str(exc), {"name": args.name}, exit_code=2)
 
-    path = m.path
+    path = manifest.path
     skill_md = path / "SKILL.md"
     out = {
-        "name": m.name,
-        "description": m.description,
-        "version": m.version,
+        "name": manifest.name,
+        "description": manifest.description,
+        "version": manifest.version,
         "path": str(path),
         "skill_md": str(skill_md),
     }
-    if want_content:
-        text = skill_md.read_text(encoding="utf-8")
-        out["body"] = _strip_frontmatter(text)
-        out["references"] = _rel_files(path, "references")
-        out["scripts"] = _rel_files(path, "scripts")
-        out["assets"] = _rel_files(path, "assets")
+
+    if args.resource:
+        try:
+            out["resource"] = read_text_resource(path, args.resource)
+        except SkillResourceNotFound as exc:
+            fail(exc.code, str(exc), {"name": args.name, "path": args.resource}, exit_code=2)
+        except SkillResourceNotText as exc:
+            fail(exc.code, str(exc), {"name": args.name, "path": args.resource}, exit_code=2)
+        except SkillResourceError as exc:
+            fail(exc.code, str(exc), {"name": args.name, "path": args.resource}, exit_code=2)
+    elif args.content or args.index:
+        index = resource_index(path)
+        # Preserve the legacy top-level lists while adding richer metadata.
+        out["references"] = index["references"]
+        out["scripts"] = index["scripts"]
+        out["assets"] = index["assets"]
+        out["resources"] = index["resources"]
+        if args.content:
+            out["body"] = _strip_frontmatter(skill_md.read_text(encoding="utf-8"))
+
     emit(out)
+    return 0
 
 
 if __name__ == "__main__":
