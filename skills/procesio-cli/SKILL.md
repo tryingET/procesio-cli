@@ -1,0 +1,113 @@
+---
+name: procesio-cli
+description: >-
+  Operate and troubleshoot PROCESIO resources through this repository's CLI or MCP.
+  Use when inspecting, creating, editing, running, validating, auditing, exporting,
+  importing, scheduling, triggering, testing, or verifying a PROCESIO process, form,
+  document, webhook, credential, data model, custom action, workspace, or execution instance.
+version: 1.0.0
+owner: procesio-cli maintainers
+last_verified: 2026-09-03
+baseline_version: da12de643c8a2355d019f40515766abf80a819df
+eval_suite: evals/evals.json
+source_policy: generated
+routing:
+  triggers:
+    - operate or troubleshoot a PROCESIO workspace through the CLI or MCP
+    - create, edit, run, validate, audit, export, import, schedule, trigger, test, or verify a PROCESIO resource
+    - inspect a PROCESIO process instance, form, document, webhook, credential, data model, or custom action
+  primary_action: capabilities
+  example: get-skill.py procesio-cli --content
+---
+
+# Operate the PROCESIO CLI
+
+Use this skill to **do work against a PROCESIO installation**. It chooses and sequences the repository's tools and executable agents; it does not replace their manifests or duplicate their action catalog.
+
+## Boundary
+
+- Product fit, pricing, sizing, comparisons, compliance, or automation strategy without a requested platform change: use `procesio-platform-advisor`.
+- Optimize T-SQL itself: use `sql-server-optimizer`. Return here to verify the surrounding process.
+- Change this repository's code, manifests, MCP server, CI, or skills: use `procesio-cli-maintainer`.
+
+## Operating loop
+
+1. **Name the outcome and target.** Identify the environment, workspace, resource type, stable ID, expected end state, and whether the request permits a mutation. Resolve names to IDs with read actions before changing anything.
+2. **Discover, do not guess.** Use bounded MCP capability search, or inspect the exact registered capability. Do not invent an action or argument from memory.
+3. **Check readiness.** Run the tool inventory and the cheapest read-only authentication or health check. Distinguish missing setup from permission denial and from a platform failure.
+4. **Choose the narrowest executor.** Use an agent for a complete methodology and a tool for one explicit operation. Prefer curated actions over generated endpoint wrappers; use raw request only as a documented escape hatch.
+5. **Read current state.** Fetch the resource and any dependency that constrains the change. Save IDs and relevant before-state in the working record.
+6. **Preview the mutation.** Use `--dry-run`, validation, a draft/disabled state, or a payload inspection when the capability supports one. Explain the expected blast radius.
+7. **Cross the approval boundary once.** A user request to design or investigate is not permission to mutate. With MCP, call the unconfirmed path first and use the confirmed path only after operator approval. Never split one hidden broad mutation across several apparently narrow calls.
+8. **Execute once, then observe.** Do not retry a write until you know whether the first request committed. Treat timeout and transport loss as unknown outcomes and re-read state.
+9. **Prove the real result.** Re-read the saved resource, run the process, inspect the instance, exercise the browser, query the database, or download the produced file—whichever observes the user's actual outcome.
+10. **Report evidence.** Return the target IDs, action taken, before/after facts, proof performed, and checks that remain manual. A successful HTTP response alone is not completion.
+
+Read `references/operation-contract.md` for executor selection, approval, retry, and proof standards.
+
+## Discovery and setup
+
+```bash
+python scripts/list-tools.py
+python scripts/run-tool.py procesio check-auth
+python scripts/run-tool.py procesio list-processes
+```
+
+Over MCP, call `capabilities` with a narrow `query` and optional `name` before requesting a full schema. Load a referenced file with `get_skill` and its `resource` field rather than loading every resource.
+
+## Choose agent or tool
+
+### Process lifecycle
+
+Use the `procesio` agent when the work includes building, validating, executing, or auditing a process as one outcome:
+
+```bash
+python scripts/run-agent.py procesio guidance
+python scripts/run-agent.py procesio verify --process-id <id> --run --payload '{}'
+python scripts/run-agent.py procesio audit --process-id <id>
+```
+
+Validation is a prerequisite, not proof of runtime behavior. For a change, verify against the target workspace and a representative input.
+
+### Connector lifecycle
+
+Use the `connector-builder` agent for the complete docs → plan → generate → compile → upload → live-test loop:
+
+```bash
+python scripts/run-agent.py connector-builder next-step --build-id <id>
+```
+
+Do not call a downloaded package complete until PROCESIO accepts it and its intended action passes a live or controlled test.
+
+### One narrow operation
+
+Use a registered tool action when the requested outcome is one read or one explicit mutation. Check its exact schema first. Curated resource actions beat raw endpoint actions because they encode DTO and platform rules.
+
+## Verification matrix
+
+| Outcome | Minimum direct proof |
+|---|---|
+| Process changed | Re-fetch configuration, validate, run representative payload, inspect final instance status and outputs |
+| Form changed | Re-fetch, publish or open intended URL, exercise relevant controls in a real browser, inspect page/console/network diagnostics |
+| Webhook or schedule changed | Re-fetch saved trigger, invoke or wait in a controlled case, inspect the resulting process instance |
+| Document changed | Run generation and inspect or download the produced artifact, not only the template DTO |
+| Data model or SQL behavior changed | Re-fetch schema and inspect the actual database/result side effect |
+| Connector changed | Upload, test the custom action, inspect response mapping and failure behavior |
+| Export/import completed | Inventory the destination resources and verify dependencies, names, IDs, and activation state |
+
+## Failure recovery
+
+- `not_found`: re-resolve the resource in the intended workspace; do not substitute a similarly named object silently.
+- `permission_denied` or `401/403`: inspect credential type, profile, workspace scope, and role. Do not retry unchanged credentials.
+- timeout or dropped connection after a write: classify as **unknown outcome**, re-read by stable ID or idempotency key, then decide whether a retry is safe.
+- process says finished but outcome is absent: inspect instance variables, outputs, platform-specific usage rules, and external side effects.
+- browser screenshot looks correct but diagnostics fail: the form is not verified.
+
+## Completion response
+
+State:
+
+1. Environment, workspace, resource, and stable IDs.
+2. Exact capability used and whether it mutated state.
+3. Direct verification performed and observable result.
+4. Any assumption, unverified external side effect, or manual check still open.

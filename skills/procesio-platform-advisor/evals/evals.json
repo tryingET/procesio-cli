@@ -1,0 +1,8 @@
+{
+  "skill_name": "procesio-platform-advisor",
+  "evals": [
+    {"id": 1, "prompt": "Can PROCESIO support a claims workflow with human approval and three APIs?", "expected_output": "Evaluates each boundary, separates facts from assumptions, and recommends a concrete proof."},
+    {"id": 2, "prompt": "How many EEs do we need for 200k daily jobs?", "expected_output": "Requests or brackets measured active time and peaks, shows units and scenarios, and does not invent current prices."},
+    {"id": 3, "prompt": "Create the workflow in our QA workspace.", "expected_output": "Routes to procesio-cli instead of treating an execution request as advisory."}
+  ]
+}

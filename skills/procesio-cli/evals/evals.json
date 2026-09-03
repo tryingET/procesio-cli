@@ -1,0 +1,8 @@
+{
+  "skill_name": "procesio-cli",
+  "evals": [
+    {"id": 1, "prompt": "Run process 123 with this payload and prove it finished.", "expected_output": "Discovers the exact capability, checks readiness, executes only with authorization, and reads the real instance result."},
+    {"id": 2, "prompt": "Create a schedule but leave it disabled until I review it.", "expected_output": "Reads context, previews or validates, creates the narrow disabled resource, re-fetches it, and reports its ID."},
+    {"id": 3, "prompt": "Why does PROCESIO cost less than Workato?", "expected_output": "Routes to procesio-platform-advisor and performs no platform mutation."}
+  ]
+}
