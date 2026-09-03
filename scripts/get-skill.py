@@ -68,6 +68,8 @@ def main(argv: list[str] | None = None) -> int:
         manifest = get_skill(args.name)
     except KeyError as exc:
         fail("not_found", str(exc), {"name": args.name}, exit_code=2)
+    except ValueError as exc:
+        fail("invalid_skill", str(exc), {"name": args.name}, exit_code=2)
 
     path = manifest.path
     skill_md = path / "SKILL.md"
@@ -75,6 +77,14 @@ def main(argv: list[str] | None = None) -> int:
         "name": manifest.name,
         "description": manifest.description,
         "version": manifest.version,
+        "tier": manifest.tier,
+        "owner": manifest.owner or None,
+        "last_verified": (manifest.last_verified.isoformat()
+                          if manifest.last_verified else None),
+        "baseline_version": manifest.baseline_version or None,
+        "eval_suite": manifest.eval_suite or None,
+        "source_policy": manifest.source_policy,
+        "ready": True,
         "path": str(path),
         "skill_md": str(skill_md),
     }
