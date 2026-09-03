@@ -38,6 +38,10 @@ jobs:
           path: candidate
       - uses: actions/checkout@v4
         with:
+          ref: ${{ github.sha }}
+          path: candidate-control
+      - uses: actions/checkout@v4
+        with:
           ref: ${{ inputs.baseline_ref }}
           path: baseline
       - uses: astral-sh/setup-uv@v5
@@ -46,13 +50,24 @@ jobs:
       - name: Install candidate runtime
         working-directory: candidate
         run: uv sync --all-extras --python 3.12
-      - name: Run two independent blinded rounds
+      - name: Establish A/A noise floor, then run two blinded A/B rounds
         env:
           SKILL_EVAL_RUNNER: ${{ vars.SKILL_EVAL_RUNNER }}
           SKILL_EVAL_TOKEN: ${{ secrets.SKILL_EVAL_TOKEN }}
           REPETITIONS: ${{ inputs.repetitions }}
         run: |
           candidate/.venv/bin/python candidate/scripts/run-skill-behavior-evals.py \
+            --mode aa \
+            --candidate-root candidate/skills \
+            --baseline-root candidate-control/skills \
+            --evals candidate/skills/evals/behavioral.json \
+            --thresholds candidate/skills/evals/gate5-thresholds.json \
+            --runner "$SKILL_EVAL_RUNNER" \
+            --workspace skill-eval-results/noise-floor \
+            --repetitions "$REPETITIONS" \
+            --seed 20260902
+          candidate/.venv/bin/python candidate/scripts/run-skill-behavior-evals.py \
+            --mode ab \
             --candidate-root candidate/skills \
             --baseline-root baseline/skills \
             --evals candidate/skills/evals/behavioral.json \
@@ -62,6 +77,7 @@ jobs:
             --repetitions "$REPETITIONS" \
             --seed 20260903
           candidate/.venv/bin/python candidate/scripts/run-skill-behavior-evals.py \
+            --mode ab \
             --candidate-root candidate/skills \
             --baseline-root baseline/skills \
             --evals candidate/skills/evals/behavioral.json \
