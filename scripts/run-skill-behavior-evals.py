@@ -11,6 +11,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import random
 import shlex
 import statistics
@@ -49,6 +50,26 @@ def _fingerprint(root: Path) -> str:
         digest.update(path.read_bytes())
         digest.update(b"\0")
     return digest.hexdigest()
+
+
+def _split_runner(value: str, *, platform: str | None = None) -> list[str]:
+    """Split an argv command without corrupting Windows backslash paths.
+
+    ``shlex.split`` defaults to POSIX semantics even on Windows, where an input
+    such as ``C:\\repo\\.venv\\Scripts\\python.exe`` loses every backslash. The
+    non-POSIX lexer preserves them but retains surrounding quotes, so strip only
+    one matching quote pair after tokenization.
+    """
+    platform = os.name if platform is None else platform
+    if platform != "nt":
+        return shlex.split(value)
+    tokens = shlex.split(value, posix=False)
+    cleaned: list[str] = []
+    for token in tokens:
+        if len(token) >= 2 and token[0] == token[-1] and token[0] in {'"', "'"}:
+            token = token[1:-1]
+        cleaned.append(token)
+    return cleaned
 
 
 def _run(command: list[str], payload: dict[str, Any], timeout: int) -> dict[str, Any]:
@@ -179,7 +200,7 @@ def main(argv: list[str] | None = None) -> int:
 
     cases = _cases(args.evals)
     thresholds = _load_json(args.thresholds)
-    command = shlex.split(args.runner)
+    command = _split_runner(args.runner)
     if not command:
         parser.error("--runner is empty")
     rng = random.Random(args.seed)
