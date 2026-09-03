@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-03",
+  "updated_on": "2026-09-04",
   "observations": [
     {
       "id": "workspace-apikey-readiness-403",
@@ -52,6 +52,37 @@
         "secure credential prompt now says PROCESIO Key Handle",
         "credential playbook contains an explicit UI-to-CLI field mapping table",
         "regression coverage locks the prompt order to Key Handle then one-time API key value"
+      ],
+      "secret_material_recorded": false
+    },
+    {
+      "id": "workspace-apikey-readiness-success",
+      "source": "local coding-agent field trial after credential terminology and probe corrections",
+      "target": {
+        "environment": "Internal-PROD",
+        "workspace": "procesio-cli-pure-awesomeness",
+        "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135",
+        "profile": "pure-awesomeness"
+      },
+      "observed": {
+        "check_auth_probe": "/api/Projects",
+        "probe_scope": "workspace",
+        "authenticated": true,
+        "processes_visible": 0,
+        "workspace_name_id_match": true,
+        "list_processes_total": 0,
+        "agent_behavior": [
+          "kept the trial read-only",
+          "confirmed the exact environment, profile, workspace name, and workspace ID",
+          "listed the empty process collection",
+          "reported the exact capabilities used and that no state was mutated"
+        ]
+      },
+      "conclusions": [
+        "workspace-scoped API-key authentication now works through the local coding agent",
+        "the scope-appropriate readiness probe gives a useful success signal even for an empty workspace",
+        "the operational skill produced a concise evidence-backed completion report",
+        "the workspace is ready for a separately approved, reversible mutation trial"
       ],
       "secret_material_recorded": false
     }
