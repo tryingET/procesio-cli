@@ -45,6 +45,22 @@ Use this skill to **do work against a PROCESIO installation**. It chooses and se
 
 Read `references/operation-contract.md` for executor selection, approval, retry, and proof standards.
 
+## Playbook router
+
+Load only the playbook that matches the requested outcome:
+
+| Outcome | Playbook |
+|---|---|
+| Create, change, validate, run, or audit a process | `references/process-lifecycle.md` |
+| Diagnose a failed, silent, or incorrect process run | `references/process-debugging.md` |
+| Build or change a form and verify it as a user | `references/form-e2e.md` |
+| Generate, install, test, and improve a custom-action connector | `references/connector-lifecycle.md` |
+| Move resources across workspaces or installations | `references/transport-environments.md` |
+| Create or change schedules and webhook triggers | `references/schedules-webhooks.md` |
+| Create documents, run generation, and inspect produced files | `references/documents-files.md` |
+| Change data models or prove database/workbook side effects | `references/data-verification.md` |
+| Configure profiles, workspace scope, credentials, users, or API keys | `references/credentials-admin.md` |
+
 ## Discovery and setup
 
 ```bash
