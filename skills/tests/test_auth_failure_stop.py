@@ -14,7 +14,7 @@ def test_credentials_playbook_stops_after_failed_check_auth():
     assert "authenticated: false" in lowered
     assert "stop all remote procesio calls" in lowered
     assert "show-credential" in lowered
-    assert "api key name" in lowered and "api key value" in lowered
+    assert "key handle" in lowered and "api key value" in lowered
     assert "configured but not confirmed" in lowered
 
 
