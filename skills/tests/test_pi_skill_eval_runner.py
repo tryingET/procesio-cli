@@ -118,3 +118,5 @@ def test_pi_command_is_ephemeral_isolated_and_read_only(monkeypatch, tmp_path):
     assert command[command.index("--provider") + 1] == "openai"
     assert command[command.index("--model") + 1] == "test-model"
     assert command[command.index("--thinking") + 1] == "low"
+    assert command[command.index("--system-prompt") + 1] == "test system"
+    assert "--append-system-prompt" not in command
