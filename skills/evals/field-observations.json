@@ -85,6 +85,54 @@
         "the workspace is ready for a separately approved, reversible mutation trial"
       ],
       "secret_material_recorded": false
+    },
+    {
+      "id": "process-create-dry-run-success",
+      "source": "local coding-agent Phase 1 process-lifecycle field trial",
+      "target": {
+        "environment": "Internal-PROD",
+        "workspace": "procesio-cli-pure-awesomeness",
+        "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135",
+        "profile": "pure-awesomeness",
+        "process_title": "CLI Field Trial 01 - Greeting"
+      },
+      "observed": {
+        "authenticated": true,
+        "process_count_before": 0,
+        "process_count_after": 0,
+        "dry_run": true,
+        "persisted": false,
+        "builder": "canonical process DTO builder with live action catalog",
+        "action": {
+          "template_name": "Concatenate",
+          "template_id": "894e02d1-303d-4e52-9ef7-1b3198ee4b53"
+        },
+        "validation": {
+          "designer_clean": true,
+          "backend_valid": true,
+          "gate_blocked": false,
+          "dto_is_valid": true
+        },
+        "agent_behavior": [
+          "pinned the intended string Concatenate action after detecting an ambiguous catalog name",
+          "kept the config in gitignored scratchpad storage",
+          "proved the workspace stayed empty after dry-run",
+          "reported that the create DTO defaults to Active=true",
+          "proposed both a direct run and verify --run, which would execute the same smoke test twice"
+        ]
+      },
+      "changes": [
+        "process lifecycle guidance now requires exactly one representative execution",
+        "the preferred path is verify --run followed by direct output inspection using its instance ID",
+        "guidance now calls out active-by-default creates and requires autonomous trigger inspection",
+        "regression coverage locks the single-run contract"
+      ],
+      "conclusions": [
+        "the create preview is structurally and semantically suitable for the first disposable mutation",
+        "Active=true is acceptable for this trial because the process has no attached autonomous trigger",
+        "the next approved phase should create once, verify the saved design, execute once, inspect output, and delete"
+      ],
+      "secret_material_recorded": false
     }
   ]
 }
