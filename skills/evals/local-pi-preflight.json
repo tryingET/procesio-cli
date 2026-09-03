@@ -1,0 +1,24 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-09-04",
+  "source": "operator-run local Pi preflight",
+  "command": "uv run python scripts/pi-eval-preflight.py --model opencode-go/deepseek-v4-pro",
+  "result": {
+    "ready": true,
+    "marker_seen": true,
+    "model": "opencode-go/deepseek-v4-pro",
+    "provider_override": null,
+    "unmatched_ambient_model_patterns": [
+      "workstation-inference/baseline-text",
+      "workstation-inference/baseline-text-mtp",
+      "workstation-inference/inkling-small-iq2m-canary"
+    ]
+  },
+  "interpretation": [
+    "The pinned opencode-go/deepseek-v4-pro model completed a no-tools, no-session preflight successfully.",
+    "The unmatched workstation-inference patterns are ambient Pi configuration warnings, not a failure of the selected model.",
+    "The behavioral runner overrides ambient enabledModels by passing the pinned model through both --model and --models.",
+    "This preflight is model-readiness evidence only; it is not a behavioral skill evaluation or Gate 5 pass."
+  ],
+  "secret_material_recorded": false
+}
