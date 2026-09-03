@@ -5,7 +5,7 @@ description: >-
   Use when inspecting, creating, editing, running, validating, auditing, exporting,
   importing, scheduling, triggering, testing, or verifying a PROCESIO process, form,
   document, webhook, credential, data model, custom action, workspace, or execution instance.
-version: 1.0.0
+version: 1.0.1
 owner: procesio-cli maintainers
 last_verified: 2026-09-03
 baseline_version: da12de643c8a2355d019f40515766abf80a819df
@@ -34,7 +34,7 @@ Use this skill to **do work against a PROCESIO installation**. It chooses and se
 
 1. **Name the outcome and target.** Identify the environment, workspace, resource type, stable ID, expected end state, and whether the request permits a mutation. Resolve names to IDs with read actions before changing anything.
 2. **Discover, do not guess.** Use bounded MCP capability search, or inspect the exact registered capability. Do not invent an action or argument from memory.
-3. **Check readiness.** Run the tool inventory and the cheapest read-only authentication or health check. Distinguish missing setup from permission denial and from a platform failure.
+3. **Check readiness, then obey the result.** Run the tool inventory and the cheapest read-only authentication or health check. If `check-auth` returns `authenticated: false`, stop all remote platform calls. `mode: apikey` or `mode: userpass` names the stored profile type; it is not evidence of successful authentication. Use only local non-secret metadata commands until the credential is corrected and `check-auth` explicitly returns `authenticated: true`.
 4. **Choose the narrowest executor.** Use an agent for a complete methodology and a tool for one explicit operation. Prefer curated actions over generated endpoint wrappers; use raw request only as a documented escape hatch.
 5. **Read current state.** Fetch the resource and any dependency that constrains the change. Save IDs and relevant before-state in the working record.
 6. **Preview the mutation.** Use `--dry-run`, validation, a draft/disabled state, or a payload inspection when the capability supports one. Explain the expected blast radius.
@@ -113,8 +113,9 @@ Use a registered tool action when the requested outcome is one read or one expli
 
 ## Failure recovery
 
+- `check-auth` returns `authenticated: false`: **hard stop**. Do not probe another PROCESIO endpoint or infer success from `mode` or from a `403`. Inspect only local non-secret profile/environment metadata, correct or rotate the credential, then retry `check-auth`.
 - `not_found`: re-resolve the resource in the intended workspace; do not substitute a similarly named object silently.
-- `permission_denied` or `401/403`: inspect credential type, profile, workspace scope, and role. Do not retry unchanged credentials.
+- `permission_denied` after a successful auth check: inspect workspace scope and role. Do not retry unchanged permissions.
 - timeout or dropped connection after a write: classify as **unknown outcome**, re-read by stable ID or idempotency key, then decide whether a retry is safe.
 - process says finished but outcome is absent: inspect instance variables, outputs, platform-specific usage rules, and external side effects.
 - browser screenshot looks correct but diagnostics fail: the form is not verified.
