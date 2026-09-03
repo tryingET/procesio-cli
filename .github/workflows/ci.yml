@@ -28,17 +28,24 @@ jobs:
         # Every suite the repo ships, including the skill measurement and
         # validation suites. A green CI must exercise the agent-facing layer too.
         run: uv run pytest tools agents dashboard webplatform skills -q
-      - name: frozen skill baseline is reproducible
+      - name: original skill baseline is reproducible
         run: >-
           uv run python scripts/evaluate-skills.py
           --catalog skills/evals/baseline-catalog.json
           --verify-baseline skills/evals/baseline.json
-      - name: skills are structurally valid
+      - name: corrected routing baseline is reproducible
         run: >-
-          uv run python scripts/validate-skills.py
-          --baseline skills/evals/validation-baseline.json
+          uv run python scripts/evaluate-skill-routing.py
+          --catalog skills/evals/baseline-catalog.json
+          --verify skills/evals/baseline-routing-v2.json
+      - name: candidate skill routing clears Gate 3
+        run: >-
+          uv run python scripts/evaluate-skill-routing.py
+          --min-accuracy 0.95
+          --max-collision-rate 0
+      - name: skills are structurally valid
+        run: uv run python scripts/validate-skills.py --strict-warnings
       - name: no secrets in tracked files
         run: uv run python scripts/secret_scan.py
       - name: generated files are current
-        run: |
-          uv run python scripts/build-router.py --check
+        run: uv run python scripts/build-router.py --check
