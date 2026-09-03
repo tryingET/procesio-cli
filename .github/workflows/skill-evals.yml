@@ -1,0 +1,82 @@
+name: skill-evals
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: Commit or ref containing the baseline skill corpus
+        required: true
+        default: da12de643c8a2355d019f40515766abf80a819df
+      repetitions:
+        description: Fresh model contexts per case and corpus
+        required: true
+        default: "5"
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - run: uv sync --all-extras --python 3.12
+      - name: Structural and routing gates
+        run: |
+          uv run python scripts/validate-skills.py --strict-warnings
+          uv run python scripts/evaluate-skill-routing.py --min-accuracy 0.95 --max-collision-rate 0
+          uv run python scripts/check-skill-governance.py --max-age-days 120
+
+  behavioral:
+    if: ${{ github.event_name == 'workflow_dispatch' && vars.SKILL_EVAL_RUNNER != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: candidate
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          path: baseline
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: "3.12"
+      - name: Install candidate runtime
+        working-directory: candidate
+        run: uv sync --all-extras --python 3.12
+      - name: Run two independent blinded rounds
+        env:
+          SKILL_EVAL_RUNNER: ${{ vars.SKILL_EVAL_RUNNER }}
+          SKILL_EVAL_TOKEN: ${{ secrets.SKILL_EVAL_TOKEN }}
+          REPETITIONS: ${{ inputs.repetitions }}
+        run: |
+          candidate/.venv/bin/python candidate/scripts/run-skill-behavior-evals.py \
+            --candidate-root candidate/skills \
+            --baseline-root baseline/skills \
+            --evals candidate/skills/evals/behavioral.json \
+            --thresholds candidate/skills/evals/gate5-thresholds.json \
+            --runner "$SKILL_EVAL_RUNNER" \
+            --workspace skill-eval-results/round-1 \
+            --repetitions "$REPETITIONS" \
+            --seed 20260903
+          candidate/.venv/bin/python candidate/scripts/run-skill-behavior-evals.py \
+            --candidate-root candidate/skills \
+            --baseline-root baseline/skills \
+            --evals candidate/skills/evals/behavioral.json \
+            --thresholds candidate/skills/evals/gate5-thresholds.json \
+            --runner "$SKILL_EVAL_RUNNER" \
+            --workspace skill-eval-results/round-2 \
+            --repetitions "$REPETITIONS" \
+            --seed 20260904
+          candidate/.venv/bin/python candidate/scripts/verify-skill-eval-series.py \
+            skill-eval-results/round-1/report.json \
+            skill-eval-results/round-2/report.json \
+            --thresholds candidate/skills/evals/gate5-thresholds.json \
+            --out skill-eval-results/series.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: skill-behavior-evals
+          path: skill-eval-results/

@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "as_of": "2026-09-03",
+  "release_eligible": false,
+  "release_blockers": [
+    "Gate 5 has not yet produced two fresh-context, blinded, repeated model A/B reports above the registered bar.",
+    "No GitHub Actions workflow run has been observed on this fork; repository Actions may still require owner enablement."
+  ],
+  "gates": [
+    {
+      "id": 0,
+      "name": "measurement-contract",
+      "status": "passed",
+      "evidence": [
+        "scripts/evaluate-skills.py",
+        "skills/evals/routing.json",
+        "skills/evals/baseline.json"
+      ]
+    },
+    {
+      "id": 1,
+      "name": "structural-validation",
+      "status": "passed",
+      "evidence": [
+        "scripts/validate-skills.py",
+        "skills/tests/test_validate_skills.py"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "progressive-disclosure",
+      "status": "passed",
+      "evidence": [
+        "tools/_lib/skill_resources.py",
+        "webplatform/aat_mcp/tests/test_progressive_discovery.py"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "bounded-skill-portfolio",
+      "status": "passed",
+      "evidence": [
+        "skills/evals/candidate-routing-v2.json",
+        "skills/tests/test_skill_routing.py"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "operational-playbooks",
+      "status": "passed",
+      "evidence": [
+        "skills/procesio-cli/evals/workflows.json",
+        "skills/tests/test_operational_playbooks.py"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "behavioral-retuning",
+      "status": "pending-external-run",
+      "evidence": [
+        "scripts/run-skill-behavior-evals.py",
+        "skills/evals/gate5-thresholds.json",
+        "skills/evals/gate5-dogfood.json"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "release-and-maintenance-controls",
+      "status": "infrastructure-complete",
+      "evidence": [
+        "tools/_lib/skill_integrity.py",
+        "scripts/check-skill-governance.py",
+        ".github/workflows/skill-evals.yml"
+      ]
+    }
+  ]
+}
