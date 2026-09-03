@@ -34,6 +34,26 @@
         "cross-platform regression tests cover scoped success and 403 failure"
       ],
       "secret_material_recorded": false
+    },
+    {
+      "id": "apikey-key-handle-terminology",
+      "source": "operator feedback during the same local setup trial",
+      "observed": {
+        "product_label": "Key Handle",
+        "previous_cli_label": "API key NAME",
+        "failure_mode": "the operator could reasonably enter a local profile label instead of the generated Key Handle"
+      },
+      "expected": [
+        "use the exact PROCESIO term Key Handle at the secure prompt",
+        "state that Key Handle maps to the CLI --key argument and HTTP key header",
+        "keep local profile name, workspace label, Key Handle, and API key value visibly separate"
+      ],
+      "changes": [
+        "secure credential prompt now says PROCESIO Key Handle",
+        "credential playbook contains an explicit UI-to-CLI field mapping table",
+        "regression coverage locks the prompt order to Key Handle then one-time API key value"
+      ],
+      "secret_material_recorded": false
     }
   ]
 }
