@@ -10,9 +10,8 @@ from tools.procesio.actiondef import ActionDef
 from tools.procesio.errors import ProcesioAPIError
 from tools.procesio.handlers.common import add_profile_arg
 
-# A cheap, side-effect-free GET used to confirm a credential actually works.
-# /api/Workspaces lists the caller's workspaces; it requires only valid auth.
-_PROBE_PATH = "/api/Workspaces"
+_ACCOUNT_PROBE_PATH = "/api/Workspaces"
+_WORKSPACE_PROBE_PATH = "/api/Projects"
 
 
 def login(client, _args) -> dict:
@@ -46,13 +45,49 @@ def login(client, _args) -> dict:
     }
 
 
+def _probe_for(client) -> tuple[str, dict | None, str, str | None]:
+    """Choose a read endpoint appropriate to the credential's actual scope.
+
+    A workspace-bound API key should not have to enumerate the account's workspace
+    collection merely to prove it can operate its own workspace. Probe the process
+    collection in that workspace instead. User sessions and unscoped/master keys
+    retain the account-level workspace probe.
+    """
+    mode = client.profile.get("type")
+    workspace_id = client.workspace_id or client.profile.get("workspace_id")
+    if mode == "apikey" and workspace_id:
+        return (
+            _WORKSPACE_PROBE_PATH,
+            {"pageNumber": 1, "pageItemCount": 1},
+            "workspace",
+            workspace_id,
+        )
+    return _ACCOUNT_PROBE_PATH, None, "account", workspace_id
+
+
+def _visible_count(body) -> int | None:
+    if isinstance(body, list):
+        return len(body)
+    if isinstance(body, dict):
+        for key in ("totalItemCount", "totalCount", "count"):
+            value = body.get(key)
+            if isinstance(value, int):
+                return value
+        for key in ("pageItems", "items", "results"):
+            value = body.get(key)
+            if isinstance(value, list):
+                return len(value)
+    return None
+
+
 def _failure_guidance(client, error: ProcesioAPIError) -> dict:
     """Return machine-readable recovery guidance without exposing secrets.
 
     In particular, ``mode=apikey`` only reports the stored profile type. Agents
     repeatedly interpreted it as a successful authentication signal even when
     ``authenticated`` was false, then probed more endpoints that could add no
-    information. A rejected readiness probe is a hard stop for remote calls.
+    information. A rejected scope-appropriate readiness probe is a hard stop for
+    further remote calls.
     """
     mode = client.profile.get("type")
     workspace_id = client.workspace_id or client.profile.get("workspace_id")
@@ -62,9 +97,9 @@ def _failure_guidance(client, error: ProcesioAPIError) -> dict:
             "hard_stop": True,
             "workspace_id": workspace_id,
             "diagnosis": (
-                "The API key name/value/workspace combination was rejected. "
-                "mode='apikey' identifies the stored profile type; it does not "
-                "mean authentication succeeded."
+                "The API key name/value/workspace combination was rejected by a "
+                "scope-appropriate read. mode='apikey' identifies the stored "
+                "profile type; it does not mean authentication succeeded."
             ),
             "next_action": (
                 "Do not call other PROCESIO endpoints with this profile. Use only "
@@ -88,32 +123,42 @@ def _failure_guidance(client, error: ProcesioAPIError) -> dict:
 
 
 def check_auth(client, _args) -> dict:
-    """Hit a live read endpoint to confirm the credential is accepted."""
+    """Hit a scope-appropriate live read endpoint to confirm the credential."""
+    probe_path, query, probe_scope, workspace_id = _probe_for(client)
     try:
-        body = client.get(_PROBE_PATH)
+        body = client.get(probe_path, query)
     except ProcesioAPIError as e:
         return {
             "authenticated": False,
             "profile": client.name,
             "environment": client.env.get("name"),
             "mode": client.profile.get("type"),
-            "probe": _PROBE_PATH,
+            "probe": probe_path,
+            "probe_scope": probe_scope,
+            "workspace_id": workspace_id,
             "status": e.status,
             "detail": e.details,
             "web_base": config.web_base(client.profile),
             "auth_base": config.auth_base(client.profile),
             **_failure_guidance(client, e),
         }
-    n = len(body) if isinstance(body, list) else None
-    return {
+
+    count = _visible_count(body)
+    out = {
         "authenticated": True,
         "profile": client.name,
         "environment": client.env.get("name"),
         "web_base": config.web_base(client.profile),
         "mode": client.profile.get("type"),
-        "probe": _PROBE_PATH,
-        "workspaces_visible": n,
+        "probe": probe_path,
+        "probe_scope": probe_scope,
+        "workspace_id": workspace_id,
     }
+    if probe_scope == "workspace":
+        out["processes_visible"] = count
+    else:
+        out["workspaces_visible"] = count
+    return out
 
 
 def logout(client, _args) -> dict:
@@ -136,7 +181,7 @@ ACTIONS = {
     ),
     "check-auth": ActionDef(
         func=check_auth, add_args=add_profile_arg, needs_client=True,
-        description="Hit a live read endpoint to verify the profile authenticates.",
+        description="Hit a scope-appropriate live read endpoint to verify the profile authenticates.",
     ),
     "logout": ActionDef(
         func=logout, add_args=add_profile_arg, needs_client=True,
