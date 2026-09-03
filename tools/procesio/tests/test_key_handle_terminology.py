@@ -13,7 +13,7 @@ class _TTY:
 
 def test_add_credential_prompts_for_key_handle_then_value(store, monkeypatch):
     prompts: list[str] = []
-    answers = iter(("handle", "value"))
+    answers = iter(("alpha-entry", "omega-entry"))
 
     monkeypatch.setattr(profile_admin.sys, "stdin", _TTY())
 
@@ -37,9 +37,9 @@ def test_add_credential_prompts_for_key_handle_then_value(store, monkeypatch):
         "PROCESIO API key value (shown once): ",
     ]
     stored = profiles.get_profile("workspace-key")
-    assert stored["key"] == "handle"
-    assert stored["value"] == "value"
+    assert stored["key"] == "alpha-entry"
+    assert stored["value"] == "omega-entry"
     assert out["profile"]["has_key"] is True
     assert out["profile"]["has_value"] is True
-    assert "handle" not in str(out)
-    assert "value" not in str(out)
+    assert "alpha-entry" not in str(out)
+    assert "omega-entry" not in str(out)
