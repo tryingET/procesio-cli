@@ -15,7 +15,6 @@ from __future__ import annotations
 import json
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import sys
@@ -105,20 +104,6 @@ def _reject_symlinks(root: Path) -> None:
             raise ValueError(f"skill corpus contains a symlink: {path}")
 
 
-def _split_extra_args(value: str) -> list[str]:
-    if not value.strip():
-        return []
-    if os.name != "nt":
-        return shlex.split(value)
-    tokens = shlex.split(value, posix=False)
-    return [
-        token[1:-1]
-        if len(token) >= 2 and token[0] == token[-1] and token[0] in {'"', "'"}
-        else token
-        for token in tokens
-    ]
-
-
 def _pi_base_command(*, skill_dirs: list[Path], read_only_tools: bool,
                      system_prompt: str) -> list[str]:
     binary = os.environ.get("PI_BIN", "pi")
@@ -152,7 +137,6 @@ def _pi_base_command(*, skill_dirs: list[Path], read_only_tools: bool,
         command += ["--model", model]
     if thinking:
         command += ["--thinking", thinking]
-    command += _split_extra_args(os.environ.get("PI_EVAL_EXTRA_ARGS", ""))
 
     for directory in skill_dirs:
         command += ["--skill", str(directory)]
@@ -256,12 +240,15 @@ def evaluate_request(
             read_only_tools=False,
             system_prompt=_JUDGE_SYSTEM,
         )
-        assertions = judge.get("assertion_results")
-        if not isinstance(assertions, dict):
-            assertions = {"judge_returned_assertions": False}
+        raw_assertions = judge.get("assertion_results")
+        if not isinstance(raw_assertions, dict) or not raw_assertions:
+            assertions = {"judge_returned_boolean_assertions": False}
         else:
-            assertions = {str(k): bool(v) for k, v in assertions.items()}
-        task_success = bool(judge.get("task_success")) and all(assertions.values())
+            assertions = {
+                str(key): value if isinstance(value, bool) else False
+                for key, value in raw_assertions.items()
+            }
+        task_success = judge.get("task_success") is True and all(assertions.values())
 
         warnings: list[str] = []
         if selected is not None and selected not in known_names:
