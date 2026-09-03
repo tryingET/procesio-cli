@@ -274,9 +274,33 @@ def get_agent(name: str):
     raise KeyError(f"agent not found: {name}")
 
 
+def _skill_entry(m) -> dict[str, Any]:
+    """Public registry shape for one validated skill."""
+    return {
+        "name": m.name,
+        "description": m.description,
+        "version": m.version,
+        "tier": m.tier,
+        "path": str(m.path),
+        "routing": m.routing.model_dump() if m.routing else None,
+        "owner": m.owner or None,
+        "last_verified": m.last_verified.isoformat() if m.last_verified else None,
+        "baseline_version": m.baseline_version or None,
+        "eval_suite": m.eval_suite or None,
+        "source_policy": m.source_policy,
+        "readiness": "ready",
+        "ready": True,
+    }
+
+
 def list_skills() -> list[dict[str, Any]]:
-    """Discover skills. A skill's `SKILL.md` frontmatter is its manifest; skills
-    carry no secrets, so a successfully-loaded skill is always ready."""
+    """Discover skills and report only integrity-valid entries as ready.
+
+    ``load_skill`` validates both frontmatter and the runtime-critical subset of
+    resource/evaluation integrity. A parseable but broken skill therefore reaches
+    every registry consumer as ``ready=False`` rather than silently advertising
+    instructions it cannot follow.
+    """
     out: list[dict[str, Any]] = []
     if not SKILLS_DIR.exists():
         return out
@@ -289,30 +313,26 @@ def list_skills() -> list[dict[str, Any]]:
         except Exception as e:
             out.append({
                 "name": dir_name,
-                "error": f"manifest load failed: {e}",
+                "error": f"skill load failed: {e}",
+                "readiness": "invalid",
                 "ready": False,
             })
             continue
-        entry = {
-            "name": m.name,
-            "description": m.description,
-            "version": m.version,
-            "path": str(m.path),
-            "routing": m.routing.model_dump() if m.routing else None,
-            "ready": True,
-        }
-        # Non-fatal hygiene signal: folder name should match the manifest name.
-        if m.name != dir_name:
-            entry["warning"] = f"folder '{dir_name}' != skill name '{m.name}'"
-        out.append(entry)
+        out.append(_skill_entry(m))
     return out
 
 
 def get_skill(name: str):
+    """Return one integrity-valid skill manifest by declared name."""
     for skill_md in SKILLS_DIR.glob("*/SKILL.md"):
         if skill_md.parent.name.startswith("_") or skill_md.parent.name == "tests":
             continue
-        m = load_skill(skill_md)
+        try:
+            m = load_skill(skill_md)
+        except Exception as exc:  # noqa: BLE001
+            if skill_md.parent.name == name:
+                raise ValueError(f"skill {name!r} is invalid: {exc}") from exc
+            continue
         if m.name == name:
             return m
     raise KeyError(f"skill not found: {name}")
