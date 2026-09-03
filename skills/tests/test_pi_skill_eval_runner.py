@@ -12,6 +12,15 @@ RUNNER = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(RUNNER)
 
 
+def _write_example_skill(root: Path) -> None:
+    skill = root / "example-skill"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text(
+        "---\nname: example-skill\ndescription: Example skill.\n---\n\n# Example\n",
+        encoding="utf-8",
+    )
+
+
 def test_extract_json_object_accepts_fenced_or_prefixed_output():
     assert RUNNER._extract_json_object('```json\n{"ok":true}\n```') == {"ok": True}
     assert RUNNER._extract_json_object('note\n{"ok":true}\ntrailing') == {"ok": True}
@@ -19,13 +28,7 @@ def test_extract_json_object_accepts_fenced_or_prefixed_output():
 
 def test_evaluate_request_uses_neutral_corpus_and_independent_judge(tmp_path):
     source = tmp_path / "candidate-skills"
-    skill = source / "example-skill"
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md").write_text(
-        "---\nname: example-skill\ndescription: Example skill.\n---\n\n# Example\n",
-        encoding="utf-8",
-    )
-
+    _write_example_skill(source)
     calls = []
 
     def fake_invoke(**kwargs):
@@ -68,13 +71,7 @@ def test_evaluate_request_uses_neutral_corpus_and_independent_judge(tmp_path):
 
 def test_failed_judge_assertion_fails_task_success(tmp_path):
     source = tmp_path / "skills"
-    skill = source / "example-skill"
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md").write_text(
-        "---\nname: example-skill\ndescription: Example skill.\n---\n",
-        encoding="utf-8",
-    )
-
+    _write_example_skill(source)
     outputs = iter([
         ({"selected_skill": "example-skill", "response": "Partial answer."}, ""),
         ({
@@ -94,6 +91,31 @@ def test_failed_judge_assertion_fails_task_success(tmp_path):
     )
 
     assert result["task_success"] is False
+
+
+def test_string_booleans_are_not_accepted_as_passing_grades(tmp_path):
+    source = tmp_path / "skills"
+    _write_example_skill(source)
+    outputs = iter([
+        ({"selected_skill": "example-skill", "response": "Answer."}, ""),
+        ({
+            "task_success": "true",
+            "assertion_results": {"safe": "true"},
+            "rationale": "Malformed booleans.",
+        }, ""),
+    ])
+
+    result = RUNNER.evaluate_request(
+        {
+            "skills_root": str(source),
+            "task": "Do the task.",
+            "expected_output": "Be safe.",
+        },
+        invoke=lambda **_kwargs: next(outputs),
+    )
+
+    assert result["task_success"] is False
+    assert result["assertion_results"] == {"safe": False}
 
 
 def test_pi_command_is_ephemeral_isolated_and_read_only(monkeypatch, tmp_path):
