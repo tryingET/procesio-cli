@@ -32,7 +32,7 @@ sys.path.insert(0, str(_PROJECT_ROOT))
 from registry import list_skills  # noqa: E402
 
 
-def _short(text: str, cap: int = 80) -> str:
+def _short(text: str, cap: int = 70) -> str:
     text = " ".join((text or "").split())
     return (text[: cap - 1] + "…") if len(text) > cap else text
 
@@ -50,17 +50,20 @@ def main() -> int:
         return 0
 
     name_w = max(len(s.get("name", "?")) for s in skills)
-    print(f"{'SKILL':<{name_w}}  VERSION  STATUS   DESCRIPTION")
-    print("-" * (name_w + 60))
-    for s in skills:
-        name = s.get("name", "?")
-        if "error" in s:
-            print(f"{name:<{name_w}}  {'-':<7}  ERROR    {s['error']}")
+    print(f"{'SKILL':<{name_w}}  VERSION  STATUS   VERIFIED    OWNER                  DESCRIPTION")
+    print("-" * (name_w + 92))
+    for skill in skills:
+        name = skill.get("name", "?")
+        if "error" in skill:
+            print(f"{name:<{name_w}}  {'-':<7}  ERROR    {'-':<10}  {'-':<21}  {skill['error']}")
             continue
-        status = "ready" if s.get("ready") else "?"
-        print(f"{name:<{name_w}}  v{s['version']:<6}  {status:<7}  {_short(s['description'])}")
-        if s.get("warning"):
-            print(f"{'':<{name_w}}  ⚠ {s['warning']}")
+        status = skill.get("readiness") or ("ready" if skill.get("ready") else "?")
+        verified = skill.get("last_verified") or "-"
+        owner = _short(skill.get("owner") or "-", 21)
+        print(
+            f"{name:<{name_w}}  v{skill['version']:<6}  {status:<8} "
+            f"{verified:<10}  {owner:<21}  {_short(skill['description'])}"
+        )
     return 0
 
 
