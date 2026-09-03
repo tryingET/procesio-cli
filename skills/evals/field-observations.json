@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "updated_on": "2026-09-03",
+  "observations": [
+    {
+      "id": "workspace-apikey-readiness-403",
+      "source": "local Pi-compatible coding-agent field trial",
+      "target": {
+        "environment": "Internal-PROD",
+        "workspace": "procesio-cli-pure-awesomeness",
+        "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135",
+        "profile": "pure-awesomeness"
+      },
+      "observed": {
+        "check_auth_probe": "/api/Workspaces",
+        "authenticated": false,
+        "status": 403,
+        "agent_behavior": [
+          "misread mode=apikey as evidence that authentication succeeded",
+          "repeated the same account-level workspace probe",
+          "continued into source and local-state inspection instead of returning one actionable next step"
+        ]
+      },
+      "expected": [
+        "use a workspace-scoped read for a workspace-bound API key",
+        "treat authenticated=false as authoritative",
+        "avoid redundant endpoint probes and secret-store inspection",
+        "return a concise key/workspace recovery action"
+      ],
+      "changes": [
+        "workspace-bound API keys now probe GET /api/Projects with one-item paging",
+        "failed probes emit failure_class, hard_stop, diagnosis, and next_action",
+        "procesio-cli skill and credential playbook explicitly distinguish profile mode from authentication success",
+        "cross-platform regression tests cover scoped success and 403 failure"
+      ],
+      "secret_material_recorded": false
+    }
+  ]
+}
