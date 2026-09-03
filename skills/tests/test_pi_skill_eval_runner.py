@@ -3,6 +3,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = ROOT / "scripts" / "pi-skill-eval-runner.py"
@@ -118,7 +120,10 @@ def test_string_booleans_are_not_accepted_as_passing_grades(tmp_path):
     assert result["assertion_results"] == {"safe": False}
 
 
-def test_pi_command_is_ephemeral_isolated_and_read_only(monkeypatch, tmp_path):
+def test_pi_command_is_ephemeral_isolated_read_only_and_model_pinned(
+    monkeypatch,
+    tmp_path,
+):
     monkeypatch.setattr(RUNNER.shutil, "which", lambda _binary: "/usr/bin/pi")
     monkeypatch.setenv("PI_EVAL_PROVIDER", "openai")
     monkeypatch.setenv("PI_EVAL_MODEL", "test-model")
@@ -139,6 +144,79 @@ def test_pi_command_is_ephemeral_isolated_and_read_only(monkeypatch, tmp_path):
     assert "bash" not in command and "write" not in command and "edit" not in command
     assert command[command.index("--provider") + 1] == "openai"
     assert command[command.index("--model") + 1] == "test-model"
+    assert command[command.index("--models") + 1] == "openai/test-model"
     assert command[command.index("--thinking") + 1] == "low"
     assert command[command.index("--system-prompt") + 1] == "test system"
     assert "--append-system-prompt" not in command
+
+
+def test_pi_model_must_be_explicitly_pinned(monkeypatch, tmp_path):
+    monkeypatch.setattr(RUNNER.shutil, "which", lambda _binary: "/usr/bin/pi")
+    monkeypatch.delenv("PI_EVAL_PROVIDER", raising=False)
+    monkeypatch.delenv("PI_EVAL_MODEL", raising=False)
+
+    with pytest.raises(RUNNER.PiRunnerError) as caught:
+        RUNNER._pi_base_command(
+            skill_dirs=[tmp_path / "skill"],
+            read_only_tools=True,
+            system_prompt="test system",
+        )
+
+    assert caught.value.code == "model_not_pinned"
+    assert "PI_EVAL_MODEL" in caught.value.message
+
+
+def test_canonical_model_id_overrides_ambient_enabled_models(monkeypatch, tmp_path):
+    monkeypatch.setattr(RUNNER.shutil, "which", lambda _binary: "/usr/bin/pi")
+    monkeypatch.delenv("PI_EVAL_PROVIDER", raising=False)
+    monkeypatch.setenv("PI_EVAL_MODEL", "another-provider/working-model")
+    monkeypatch.delenv("PI_EVAL_THINKING", raising=False)
+
+    command = RUNNER._pi_base_command(
+        skill_dirs=[tmp_path / "skill"],
+        read_only_tools=False,
+        system_prompt="judge",
+    )
+
+    assert "--provider" not in command
+    assert command[command.index("--model") + 1] == "another-provider/working-model"
+    assert command[command.index("--models") + 1] == "another-provider/working-model"
+    assert "--no-tools" in command
+
+
+def test_quota_exhaustion_is_classified_with_reset_and_stale_patterns(monkeypatch):
+    monkeypatch.setenv(
+        "PI_EVAL_MODEL",
+        "workstation-inference/baseline-text",
+    )
+    error = RUNNER._classify_pi_failure(
+        """
+        Warning: No models match pattern "workstation-inference/baseline-text"
+        Warning: No models match pattern "workstation-inference/baseline-text-mtp"
+        429: {"code":"1310","message":"Weekly/Monthly Limit Exhausted.
+        Your limit will reset at 2026-09-04 23:41:13"}
+        """,
+        returncode=1,
+    )
+
+    assert error.code == "model_quota_exhausted"
+    assert error.reset_at == "2026-09-04 23:41:13"
+    assert error.model == "workstation-inference/baseline-text"
+    assert error.unmatched_model_patterns == [
+        "workstation-inference/baseline-text",
+        "workstation-inference/baseline-text-mtp",
+    ]
+    public = error.public_result()["runner_error"]
+    assert public["code"] == "model_quota_exhausted"
+    assert "different logged-in model" in public["next_action"]
+
+
+def test_unmatched_explicit_model_is_classified_separately(monkeypatch):
+    monkeypatch.setenv("PI_EVAL_MODEL", "missing/provider-model")
+    error = RUNNER._classify_pi_failure(
+        'Warning: No models match pattern "missing/provider-model"',
+        returncode=1,
+    )
+
+    assert error.code == "model_not_available"
+    assert error.unmatched_model_patterns == ["missing/provider-model"]
