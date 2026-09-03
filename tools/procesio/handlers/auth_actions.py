@@ -46,6 +46,47 @@ def login(client, _args) -> dict:
     }
 
 
+def _failure_guidance(client, error: ProcesioAPIError) -> dict:
+    """Return machine-readable recovery guidance without exposing secrets.
+
+    In particular, ``mode=apikey`` only reports the stored profile type. Agents
+    repeatedly interpreted it as a successful authentication signal even when
+    ``authenticated`` was false, then probed more endpoints that could add no
+    information. A rejected readiness probe is a hard stop for remote calls.
+    """
+    mode = client.profile.get("type")
+    workspace_id = client.workspace_id or client.profile.get("workspace_id")
+    if mode == "apikey" and error.status in {401, 403}:
+        return {
+            "failure_class": "credential_rejected",
+            "hard_stop": True,
+            "workspace_id": workspace_id,
+            "diagnosis": (
+                "The API key name/value/workspace combination was rejected. "
+                "mode='apikey' identifies the stored profile type; it does not "
+                "mean authentication succeeded."
+            ),
+            "next_action": (
+                "Do not call other PROCESIO endpoints with this profile. Use only "
+                "local non-secret metadata commands (show-credential, "
+                "list-credentials, show-environment), then recreate or re-enter "
+                "the API key NAME and VALUE for the exact workspace. Retry "
+                "check-auth before any other API call."
+            ),
+        }
+    return {
+        "failure_class": "authentication_or_service_failure",
+        "hard_stop": True,
+        "workspace_id": workspace_id,
+        "diagnosis": "The live authentication probe failed.",
+        "next_action": (
+            "Do not continue with workspace operations until check-auth returns "
+            "authenticated=true. Diagnose the named profile, environment, and "
+            "workspace using non-secret metadata only."
+        ),
+    }
+
+
 def check_auth(client, _args) -> dict:
     """Hit a live read endpoint to confirm the credential is accepted."""
     try:
@@ -61,6 +102,7 @@ def check_auth(client, _args) -> dict:
             "detail": e.details,
             "web_base": config.web_base(client.profile),
             "auth_base": config.auth_base(client.profile),
+            **_failure_guidance(client, e),
         }
     n = len(body) if isinstance(body, list) else None
     return {
