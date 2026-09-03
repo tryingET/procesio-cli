@@ -10,6 +10,19 @@ Configure or diagnose credential profiles, workspace scope, users, API keys, or 
 - Determine whether the machine has an OS keyring or needs an approved headless backend.
 - Never ask the user to paste a reusable secret into a tracked file or ordinary chat evidence.
 
+### PROCESIO API-key field mapping
+
+Keep these values separate; the product and CLI use different labels:
+
+| Meaning | PROCESIO UI | CLI |
+|---|---|---|
+| Local alias for choosing the credential later | Not applicable | `--name`, for example `pure-awesomeness` |
+| Public identifier sent in the `key` request header | **Key Handle** | Secure prompt `PROCESIO Key Handle`, or `--key` for non-interactive setup |
+| One-time secret sent in the `value` request header | API key value | Secure prompt `PROCESIO API key value (shown once)`, or `--value` |
+| Workspace scope | Workspace ID | `--workspace-id` |
+
+The **Key Handle is not the local profile name, workspace name, or a user-chosen label**. Copy it exactly from the API-key creation result. Prefer the secure prompts; command-line `--key` and `--value` arguments can leak through shell history and process listings.
+
 ## Inspect
 
 1. List profiles and readiness metadata only; do not read or echo secret values.
@@ -23,7 +36,7 @@ Configure or diagnose credential profiles, workspace scope, users, API keys, or 
 - If `check-auth` returns `authenticated: false`, or its probe returns `401`/`403`, stop all remote PROCESIO calls. Do not try alternate endpoints; they cannot confirm the workspace while the same credential is rejected.
 - The only allowed follow-up diagnostics are local and non-secret: `show-credential`, `list-credentials`, and `show-environment`.
 - Do not inspect credential-store internals, dump environment variables, print commands containing secrets, or search source code for a way around the failed check.
-- If the non-secret metadata is correct, ask the operator to recreate or re-enter the API key in this exact order: **API key NAME**, then **API key VALUE**, for the intended workspace. Retry `check-auth` before any other API call.
+- If the non-secret metadata is correct, ask the operator to recreate or re-enter the API key in this exact order: **Key Handle**, then **API key value**, for the intended workspace. Retry `check-auth` before any other API call.
 - Until a server response succeeds, report the requested workspace as **configured but not confirmed**.
 
 ## Preview and approval
@@ -51,7 +64,7 @@ Configure or diagnose credential profiles, workspace scope, users, API keys, or 
 
 If a rotation fails, retain or restore the prior working credential until all dependents pass. Revoke temporary keys after testing. Do not remove the only administrative profile without a tested recovery path.
 
-For a newly created disposable profile that has never authenticated, remove the local profile, create a fresh key while the intended workspace is selected, store the new name/value through the secure prompt, and repeat only `check-auth`.
+For a newly created disposable profile that has never authenticated, remove the local profile, create a fresh key while the intended workspace is selected, store the new **Key Handle** and API key value through the secure prompts, and repeat only `check-auth`.
 
 ## Evidence
 
