@@ -1,6 +1,7 @@
 """Tool and agent manifest loading + validation."""
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
@@ -238,20 +239,25 @@ class SkillManifest(BaseModel):
 
     A skill is instruction/reference content (not an executable), so its native
     `SKILL.md` YAML frontmatter IS its manifest — no separate file, no duplicated
-    metadata. The frontmatter always carries `name` + `description`; it may also
-    carry native keys we don't model (`license`, `allowed-tools`, etc.), so unlike
-    tool/agent manifests this is lenient (`extra="ignore"`) — skills are imported
-    artifacts we keep portable, not author from scratch.
+    metadata. The frontmatter always carries `name` + `description`; imported
+    native keys we do not model remain portable through ``extra='ignore'``.
 
-    An optional `routing:` block lets a skill curate its Capability-Router line,
-    exactly like a tool. When absent, the router falls back to the description.
+    Repository-authored skills may also declare governance metadata. These fields
+    do not affect external Agent Skills compatibility; they let the registry and
+    release checks surface ownership, freshness, evaluation, and catalog policy.
     """
     model_config = ConfigDict(extra="ignore")
 
     name: str
     description: str
     version: str = "0.1.0"
+    tier: Literal["official", "template", "custom"] = "template"
     routing: RoutingSpec | None = None
+    owner: str = ""
+    last_verified: date | None = None
+    baseline_version: str = ""
+    eval_suite: str = ""
+    source_policy: Literal["generated", "timestamped", "static"] | None = None
     # path is filled by the loader; not part of the frontmatter
     path: Path | None = None
 
@@ -274,4 +280,13 @@ def load_skill(skill_md_path: Path) -> SkillManifest:
     raw = _split_frontmatter(skill_md_path.read_text(encoding="utf-8"))
     m = SkillManifest(**raw)
     m.path = skill_md_path.parent
+
+    # A parseable skill is not necessarily usable. Keep the cheap runtime subset
+    # of integrity checks in the loader so every registry consumer agrees on
+    # readiness; the full authoring linter remains scripts/validate-skills.py.
+    from tools._lib.skill_integrity import skill_integrity_errors
+
+    errors = skill_integrity_errors(m, skill_md_path)
+    if errors:
+        raise ValueError("skill integrity failed: " + "; ".join(errors))
     return m
