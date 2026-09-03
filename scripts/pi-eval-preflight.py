@@ -23,7 +23,7 @@ from pathlib import Path
 
 _ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
 _RESET_RE = re.compile(
-    r"reset\s+at\s+([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2}(?:\s*[^\s]+)?)",
+    r"reset\s+at\s+([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})",
     re.IGNORECASE,
 )
 _MODEL_PATTERN_RE = re.compile(r'No models match pattern\s+"([^"]+)"', re.IGNORECASE)
