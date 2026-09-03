@@ -1,0 +1,31 @@
+{
+  "accuracy_delta": 0.7708333333333334,
+  "baseline_routing_accuracy": 0.22916666666666666,
+  "case_count": 48,
+  "catalog_fingerprint": "d917a1ac58eeaf631d25244b89d679c6c90b51c408c15f3eee9904416cb24fd3",
+  "collision_rate": 0.0,
+  "collisions": 0,
+  "confusion": {
+    "None": {
+      "None": 6
+    },
+    "procesio-cli": {
+      "procesio-cli": 13
+    },
+    "procesio-cli-maintainer": {
+      "procesio-cli-maintainer": 9
+    },
+    "procesio-platform-advisor": {
+      "procesio-platform-advisor": 11
+    },
+    "sql-server-optimizer": {
+      "sql-server-optimizer": 9
+    }
+  },
+  "corpus_fingerprint": "d0f4625eba3fc20ced4a3851682803620b1240c4d9588796176771612637e3f1",
+  "correct": 48,
+  "method": "Deterministic description-routing lint. Behavioral A/B observations remain a separate release gate.",
+  "routing_accuracy": 1.0,
+  "schema_version": 2,
+  "skill_count": 4
+}
