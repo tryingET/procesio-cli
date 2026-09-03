@@ -74,6 +74,11 @@ def skill_integrity_errors(manifest: Any, skill_md: Path) -> list[str]:
         if rel.is_absolute() or ".." in rel.parts or rel.parts[0] not in _RESOURCE_DIRS:
             errors.append(f"invalid resource reference: {raw}")
             continue
+        # A path such as scripts/run-tool.py may name a repository command, not
+        # a bundled skill resource. Validate it here only when the skill actually
+        # owns that resource category; the full authoring validator resolves both.
+        if not (root / rel.parts[0]).is_dir():
+            continue
         candidate = root.joinpath(*rel.parts)
         try:
             resolved = candidate.resolve(strict=True)
