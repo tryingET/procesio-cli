@@ -133,6 +133,66 @@
         "the next approved phase should create once, verify the saved design, execute once, inspect output, and delete"
       ],
       "secret_material_recorded": false
+    },
+    {
+      "id": "process-create-run-output-cleanup-success",
+      "source": "local coding-agent Phase 2 process-lifecycle field trial",
+      "target": {
+        "environment": "Internal-PROD",
+        "workspace": "procesio-cli-pure-awesomeness",
+        "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135",
+        "profile": "pure-awesomeness",
+        "process_title": "CLI Field Trial 01 - Greeting"
+      },
+      "observed": {
+        "process_id": "af87068d-0fe8-411f-b4e2-455ec8cf3eee",
+        "instance_id": "9976e689-ac86-4f5d-a8bc-61e544868436",
+        "executions": 1,
+        "create_succeeded": true,
+        "validation_verdict": "pass",
+        "audit_verdict": "clean",
+        "runtime_status": 50,
+        "observed_output": {
+          "greeting": "Hello, Ada!"
+        },
+        "cleanup": {
+          "deleted": true,
+          "final_process_count": 0
+        },
+        "capabilities": [
+          "check-auth",
+          "list-processes",
+          "process-create",
+          "get-process",
+          "procesio agent verify --run",
+          "list-instances",
+          "get-instance-output",
+          "process-delete"
+        ],
+        "agent_behavior": [
+          "honored the exact profile, environment, workspace, and workspace-ID boundary",
+          "created one process and used verify --run as the only execution path",
+          "captured the process and instance IDs",
+          "re-read the saved process and verified title, variables, template, mappings, graph, webhooks, and trigger absence",
+          "inspected the output value instead of treating status 50 as sufficient proof",
+          "deleted exactly the created process only after successful verification",
+          "proved the workspace returned to its zero-process baseline"
+        ]
+      },
+      "efficiency_findings": [
+        "list-instances was a harmless but redundant read because verify --run had already returned the instance ID"
+      ],
+      "changes": [
+        "process lifecycle guidance now directs successful verify --run flows straight to get-instance-output and reserves list-instances for missing IDs, unknown outcomes, or reconciliation",
+        "regression coverage locks the direct-output-inspection rule"
+      ],
+      "conclusions": [
+        "the approved create, re-read, validate/audit, single-run, output-inspection, and exact-delete round trip works end to end",
+        "the workspace returned to its zero-process baseline with no remaining PROCESIO artifact",
+        "the local agent respected mutation approval, single-execution, evidence, workspace-scope, and cleanup boundaries",
+        "this is one successful field run, not the blinded repeated model A/B evidence required for Gate 5"
+      ],
+      "secret_material_recorded": false
     }
   ]
 }
