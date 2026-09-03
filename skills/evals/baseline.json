@@ -1,0 +1,34 @@
+{
+  "case_count": 48,
+  "catalog_fingerprint": "bb783e55d285312d69c685e0feb66ed52666e0e878192af3c88d6fe0050fc6f7",
+  "collision_rate": 0.041666666666666664,
+  "collisions": 2,
+  "confusion": {
+    "None": {
+      "None": 3,
+      "procesio-expert": 1,
+      "sql-server-optimizer": 2
+    },
+    "procesio-cli": {
+      "None": 1,
+      "procesio-expert": 11,
+      "sql-server-optimizer": 1
+    },
+    "procesio-cli-maintainer": {
+      "None": 3,
+      "procesio-expert": 2,
+      "sql-server-optimizer": 4
+    },
+    "procesio-platform-advisor": {
+      "procesio-expert": 11
+    },
+    "sql-server-optimizer": {
+      "sql-server-optimizer": 9
+    }
+  },
+  "corpus_fingerprint": "d0f4625eba3fc20ced4a3851682803620b1240c4d9588796176771612637e3f1",
+  "correct": 12,
+  "routing_accuracy": 0.25,
+  "schema_version": 1,
+  "skill_count": 2
+}
