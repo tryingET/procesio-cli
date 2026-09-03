@@ -3,9 +3,20 @@
   "as_of": "2026-09-03",
   "release_eligible": false,
   "release_blockers": [
-    "Gate 5 has not yet produced two fresh-context, blinded, repeated model A/B reports above the registered bar.",
-    "No GitHub Actions workflow run has been observed on this fork; repository Actions may still require owner enablement."
+    "Gate 5 has not yet produced two fresh-context, blinded, repeated model A/B reports above the registered bar."
   ],
+  "last_green_ci": {
+    "run_id": 33757598907,
+    "head_sha": "ab4dd4b2b857825ee37df4cf8a8d3def33c17bed",
+    "matrix": [
+      "ubuntu-latest / Python 3.11",
+      "ubuntu-latest / Python 3.12",
+      "macos-latest / Python 3.11",
+      "macos-latest / Python 3.12",
+      "windows-latest / Python 3.11",
+      "windows-latest / Python 3.12"
+    ]
+  },
   "gates": [
     {
       "id": 0,
@@ -66,11 +77,12 @@
     {
       "id": 6,
       "name": "release-and-maintenance-controls",
-      "status": "infrastructure-complete",
+      "status": "passed",
       "evidence": [
         "tools/_lib/skill_integrity.py",
         "scripts/check-skill-governance.py",
-        ".github/workflows/skill-evals.yml"
+        ".github/workflows/skill-evals.yml",
+        ".github/workflows/ci.yml"
       ]
     }
   ]
