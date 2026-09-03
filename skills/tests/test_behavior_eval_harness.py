@@ -1,11 +1,18 @@
 from __future__ import annotations
 
+import importlib.util
 import json
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+SCRIPT = ROOT / "scripts" / "run-skill-behavior-evals.py"
+SPEC = importlib.util.spec_from_file_location("run_skill_behavior_evals", SCRIPT)
+assert SPEC and SPEC.loader
+runner = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = runner
+SPEC.loader.exec_module(runner)
 
 
 def _fixture_corpora(tmp_path):
@@ -38,12 +45,23 @@ def _fixture_corpora(tmp_path):
 def _command(tmp_path, candidate, baseline, evals, thresholds, *extra):
     fixture = ROOT / "skills" / "tests" / "fixtures" / "skill_eval_runner.py"
     return [
-        sys.executable, str(ROOT / "scripts" / "run-skill-behavior-evals.py"),
+        sys.executable, str(SCRIPT),
         "--candidate-root", str(candidate), "--baseline-root", str(baseline),
         "--evals", str(evals), "--thresholds", str(thresholds),
         "--runner", f"{sys.executable} {fixture}",
         "--workspace", str(tmp_path / "out"), "--repetitions", "1",
         *extra,
+    ]
+
+
+def test_windows_runner_split_preserves_backslashes_and_removes_quote_wrappers():
+    command = (
+        r'"C:\Program Files\Python\python.exe" '
+        r'C:\repo\.venv\Scripts\runner.py'
+    )
+    assert runner._split_runner(command, platform="nt") == [
+        r"C:\Program Files\Python\python.exe",
+        r"C:\repo\.venv\Scripts\runner.py",
     ]
 
 
