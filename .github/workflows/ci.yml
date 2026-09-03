@@ -25,10 +25,14 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: uv sync --all-extras --python ${{ matrix.python-version }}
       - name: tests
-        # Every suite the repo ships, not just the two obvious ones: the
-        # dashboard and the MCP bridge carry tests too, and leaving them out
-        # meant a green CI that had never exercised either.
-        run: uv run pytest tools agents dashboard webplatform -q
+        # Every suite the repo ships, including the skill measurement and
+        # validation suites. A green CI must exercise the agent-facing layer too.
+        run: uv run pytest tools agents dashboard webplatform skills -q
+      - name: frozen skill baseline is reproducible
+        run: >-
+          uv run python scripts/evaluate-skills.py
+          --catalog skills/evals/baseline-catalog.json
+          --verify-baseline skills/evals/baseline.json
       - name: no secrets in tracked files
         run: uv run python scripts/secret_scan.py
       - name: generated files are current
