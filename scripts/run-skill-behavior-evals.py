@@ -2,8 +2,9 @@
 """Run paired, blinded skill-corpus evaluations through an external model runner.
 
 The runner is provider-neutral. It receives one JSON object on stdin and must
-return one JSON object on stdout. Use A/A (the same root twice) to measure noise,
-then old-vs-candidate with the same command, cases, repetitions, and seed.
+return one JSON object on stdout. Run ``--mode aa`` against two identical
+checkouts first, then ``--mode ab`` against old and candidate corpora with the
+same command, cases, repetitions, and controlled seeds.
 """
 from __future__ import annotations
 
@@ -93,7 +94,10 @@ def _summary(rows: list[dict[str, Any]], labels: dict[str, str]) -> dict[str, An
     for variant, items in by_variant.items():
         selection = [int(row.get("selected_skill") == row.get("expected_skill")) for row in items]
         success = [int(bool(row.get("task_success"))) for row in items]
-        collisions = [int(row.get("selected_skill") in set(row.get("forbidden_skills") or [])) for row in items]
+        collisions = [
+            int(row.get("selected_skill") in set(row.get("forbidden_skills") or []))
+            for row in items
+        ]
         out[variant] = {
             "runs": len(items),
             "selection_accuracy": statistics.mean(selection) if selection else None,
@@ -112,23 +116,38 @@ def _summary(rows: list[dict[str, Any]], labels: dict[str, str]) -> dict[str, An
 
 
 def _gate(summary: dict[str, Any], thresholds: dict[str, Any], repetitions: int,
-          provisional: bool) -> dict[str, Any]:
+          provisional: bool, mode: str = "ab") -> dict[str, Any]:
     candidate = summary["candidate"]
     reasons: list[str] = []
     minimum_repetitions = int(thresholds.get("minimum_repetitions", 5))
     if repetitions < minimum_repetitions:
         reasons.append(f"{repetitions} repetitions < required {minimum_repetitions}")
-    if candidate["selection_accuracy"] < float(thresholds.get("min_selection_accuracy", 0.92)):
-        reasons.append("selection accuracy below threshold")
-    if candidate["collision_rate"] > float(thresholds.get("max_collision_rate", 0.0)):
-        reasons.append("collision rate above threshold")
-    required_delta = float(thresholds.get("min_task_success_delta", 0.15))
-    if summary["task_success_rate_delta"] < required_delta:
-        reasons.append("task-success improvement below threshold")
+
+    if mode == "aa":
+        limits = {
+            "selection_accuracy_delta": float(thresholds.get("max_aa_selection_delta", 0.05)),
+            "task_success_rate_delta": float(thresholds.get("max_aa_task_success_delta", 0.05)),
+            "collision_rate_delta": float(thresholds.get("max_aa_collision_delta", 0.02)),
+        }
+        for field, limit in limits.items():
+            value = summary.get(field)
+            if value is None or abs(float(value)) > limit:
+                reasons.append(f"A/A {field} exceeds noise limit {limit}")
+    else:
+        if candidate["selection_accuracy"] < float(
+            thresholds.get("min_selection_accuracy", 0.92)
+        ):
+            reasons.append("selection accuracy below threshold")
+        if candidate["collision_rate"] > float(thresholds.get("max_collision_rate", 0.0)):
+            reasons.append("collision rate above threshold")
+        required_delta = float(thresholds.get("min_task_success_delta", 0.15))
+        if summary["task_success_rate_delta"] < required_delta:
+            reasons.append("task-success improvement below threshold")
+
     passed = not reasons and not provisional
     if provisional:
         reasons.append("run explicitly marked provisional")
-    return {"passed": passed, "reasons": reasons}
+    return {"passed": passed, "mode": mode, "reasons": reasons}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -143,6 +162,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repetitions", type=int, default=5)
     parser.add_argument("--seed", type=int, default=20260903)
     parser.add_argument("--timeout", type=int, default=600)
+    parser.add_argument("--mode", choices=("aa", "ab"), default="ab")
     parser.add_argument("--provisional", action="store_true")
     args = parser.parse_args(argv)
 
@@ -151,6 +171,11 @@ def main(argv: list[str] | None = None) -> int:
     for root in (args.candidate_root, args.baseline_root):
         if not root.is_dir():
             parser.error(f"skill root does not exist: {root}")
+
+    candidate_fingerprint = _fingerprint(args.candidate_root)
+    baseline_fingerprint = _fingerprint(args.baseline_root)
+    if args.mode == "aa" and candidate_fingerprint != baseline_fingerprint:
+        parser.error("--mode aa requires byte-identical skill corpora")
 
     cases = _cases(args.evals)
     thresholds = _load_json(args.thresholds)
@@ -161,7 +186,8 @@ def main(argv: list[str] | None = None) -> int:
     labels_list = ["corpus-a", "corpus-b"]
     rng.shuffle(labels_list)
     labels = {labels_list[0]: "candidate", labels_list[1]: "baseline"}
-    roots = {labels_list[0]: args.candidate_root.resolve(), labels_list[1]: args.baseline_root.resolve()}
+    roots = {labels_list[0]: args.candidate_root.resolve(),
+             labels_list[1]: args.baseline_root.resolve()}
 
     jobs = [
         (case, repetition, label)
@@ -207,14 +233,16 @@ def main(argv: list[str] | None = None) -> int:
     summary = _summary(rows, labels)
     report = {
         "schema_version": 1,
+        "mode": args.mode,
         "seed": args.seed,
         "repetitions": args.repetitions,
         "case_count": len(cases),
         "blind_label_mapping": labels,
-        "candidate_fingerprint": _fingerprint(args.candidate_root),
-        "baseline_fingerprint": _fingerprint(args.baseline_root),
+        "candidate_fingerprint": candidate_fingerprint,
+        "baseline_fingerprint": baseline_fingerprint,
         "summary": summary,
-        "gate": _gate(summary, thresholds, args.repetitions, args.provisional),
+        "gate": _gate(summary, thresholds, args.repetitions,
+                      args.provisional, args.mode),
     }
     (args.workspace / "report.json").write_text(
         json.dumps(report, indent=2, sort_keys=True) + "\n", encoding="utf-8"
