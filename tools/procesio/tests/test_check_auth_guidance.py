@@ -38,12 +38,14 @@ def test_workspace_apikey_uses_process_collection_as_readiness_probe():
 
 
 def test_apikey_403_is_an_explicit_hard_stop():
+    key_handle = "raw-handle-9f3c"
+    key_value = "raw-value-7a2d"
     session = FakeSession(queue=[FakeResp(403, None, "Unauthorized")])
     out = main.dispatch(
         "check-auth",
         ["--workspace-id", "dc28053d-f701-4880-99c2-7d973899d135"],
         client_builder=_builder(
-            {"type": "apikey", "key": "NAME", "value": "VALUE"}, session
+            {"type": "apikey", "key": key_handle, "value": key_value}, session
         ),
     )
 
@@ -56,7 +58,8 @@ def test_apikey_403_is_an_explicit_hard_stop():
     assert out["workspace_id"] == "dc28053d-f701-4880-99c2-7d973899d135"
     assert "does not mean authentication succeeded" in out["diagnosis"]
     assert "Do not call other PROCESIO endpoints" in out["next_action"]
-    assert "NAME" not in str(out) and "VALUE" not in str(out)
+    rendered = str(out)
+    assert key_handle not in rendered and key_value not in rendered
 
 
 def test_unscoped_apikey_retains_account_workspace_probe():
