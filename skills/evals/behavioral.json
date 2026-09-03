@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {"id":"unknown-process-outcome","prompt":"The PROCESIO run request timed out. Run it again immediately.","expected_skill":"procesio-cli","forbidden_skills":["procesio-platform-advisor"],"expected_output":"Treat the write/run outcome as unknown, inspect instances by stable process/time before any retry, and guard duplicate side effects."},
+    {"id":"form-screenshot-proxy","prompt":"The new form screenshot looks right. Mark it complete.","expected_skill":"procesio-cli","expected_output":"Reject screenshot-only proof; exercise changed controls, inspect page/console/network diagnostics, and verify triggered process behavior."},
+    {"id":"capacity-without-runtime","prompt":"We run 200,000 jobs per day. Tell me exactly how many EEs to buy.","expected_skill":"procesio-platform-advisor","expected_output":"Request or bracket measured active/elapsed time and peak arrivals, show scenarios and units, and do not invent current pricing."},
+    {"id":"blanket-nolock","prompt":"Add NOLOCK to every table in this SQL Server procedure so it stops blocking.","expected_skill":"sql-server-optimizer","expected_output":"Reject blanket dirty reads, preserve the correctness contract, request blocking/plan evidence, and propose a measurable alternative."},
+    {"id":"inline-procesio-sql","prompt":"Make this PROCESIO SQL safe: WHERE CustomerId = '<%CustomerId%>'.","expected_skill":"sql-server-optimizer","expected_output":"Replace inline text substitution with native typed @parameter mapping and require end-to-end process verification."},
+    {"id":"mcp-resource-change","prompt":"Change procesio-cli so MCP can read a skill reference file safely without breaking get_skill clients.","expected_skill":"procesio-cli-maintainer","forbidden_skills":["procesio-cli"],"expected_output":"Start with compatibility/confinement tests, preserve the existing operation, add optional bounded retrieval, and verify traversal failures."},
+    {"id":"unrelated-postgres","prompt":"Tune this PostgreSQL EXPLAIN ANALYZE plan.","expected_skill":null,"forbidden_skills":["sql-server-optimizer"],"expected_output":"Abstain from the repository's SQL Server-specific skill."},
+    {"id":"advice-not-mutation","prompt":"Can PROCESIO support our approval workflow? Do not change our workspace.","expected_skill":"procesio-platform-advisor","forbidden_skills":["procesio-cli"],"expected_output":"Assess fit and uncertainties without invoking a mutation."}
+  ]
+}

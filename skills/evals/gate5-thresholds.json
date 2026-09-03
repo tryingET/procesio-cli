@@ -1,0 +1,8 @@
+{
+  "registered_on": "2026-09-03",
+  "minimum_repetitions": 5,
+  "min_selection_accuracy": 0.92,
+  "max_collision_rate": 0.0,
+  "min_task_success_delta": 0.15,
+  "required_consecutive_clean_runs": 2
+}

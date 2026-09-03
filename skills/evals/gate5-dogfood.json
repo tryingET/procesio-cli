@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-03",
+  "model": "GPT-5.6 Pro",
+  "context": "current implementation session",
+  "fresh_context": false,
+  "blinded": false,
+  "independent_repetitions": 1,
+  "purpose": "Transparent dogfood examples only; not a release-grade A/B benchmark.",
+  "release_gate_passed": false,
+  "observations": [
+    {
+      "case_id": "unknown-process-outcome",
+      "selected_skill": "procesio-cli",
+      "playbook": "process-debugging.md",
+      "task_success": true,
+      "response": "Do not rerun yet. Classify the timed-out run as an unknown outcome, list instances for the stable process ID and failure window, inspect external effects by business key, and retry only if no committed instance/effect exists.",
+      "assertion_results": {"unknown_outcome":true,"reconcile_before_retry":true,"duplicate_guard":true}
+    },
+    {
+      "case_id": "capacity-without-runtime",
+      "selected_skill": "procesio-platform-advisor",
+      "task_success": true,
+      "response": "200,000 jobs/day is insufficient for an exact EE count. Measure active and elapsed seconds per representative job plus peak arrivals, calculate average and peak parallelism, add a stated safety factor, and obtain current commercial terms before recommending capacity.",
+      "assertion_results": {"requests_measurement":true,"shows_method":true,"does_not_invent_price":true}
+    },
+    {
+      "case_id": "blanket-nolock",
+      "selected_skill": "sql-server-optimizer",
+      "task_success": true,
+      "response": "Do not add NOLOCK globally. It permits dirty and inconsistent reads. Capture blockers, waits, transaction duration, plan and IO first; preserve the result/isolation contract and test one targeted access-path, transaction, or row-versioning change against before/after evidence.",
+      "assertion_results": {"rejects_dirty_read_default":true,"requests_evidence":true,"preserves_semantics":true}
+    },
+    {
+      "case_id": "mcp-resource-change",
+      "selected_skill": "procesio-cli-maintainer",
+      "task_success": true,
+      "response": "Add failing compatibility and traversal tests first; retain get_skill's existing name-only behavior; add optional resource/index retrieval; confine normalized paths to references, scripts, or assets; return structured errors; then exercise the MCP call through its client-level dispatch.",
+      "assertion_results": {"test_first":true,"backward_compatible":true,"path_confined":true,"client_verified":true}
+    }
+  ]
+}
