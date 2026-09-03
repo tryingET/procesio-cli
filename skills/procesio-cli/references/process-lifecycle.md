@@ -41,9 +41,10 @@ Minimum proof:
 2. Use one execution path only:
    - preferred: `procesio` agent `verify --run`, then use the returned instance ID for output inspection; or
    - direct `run-process` once, followed by explicit instance-status/output reads and a non-running audit.
-3. Read the real instance status, inputs, outputs, and error details. Status alone is not proof of the expected output value.
-4. Verify external effects at their boundary: database row, generated file, API result, email sink, or child instance.
-5. Run the static audit for secrets, missing error handling, inefficient patterns, and designer/runtime mismatch.
+3. After a successful `verify --run`, call `get-instance-output` directly with the returned instance ID and process ID. Do not add `list-instances` as routine confirmation when the instance ID is already known; reserve it for a missing ID, timeout/unknown outcome, or reconciliation.
+4. Read the real instance status, inputs, outputs, and error details. Status alone is not proof of the expected output value.
+5. Verify external effects at their boundary: database row, generated file, API result, email sink, or child instance.
+6. Run the static audit for secrets, missing error handling, inefficient patterns, and designer/runtime mismatch.
 
 Validation alone does not pass this playbook. Two successful executions are not stronger evidence when one representative execution and direct output inspection prove the same claim.
 
