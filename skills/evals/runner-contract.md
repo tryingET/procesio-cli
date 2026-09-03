@@ -5,7 +5,7 @@
 ## Required experiment order
 
 1. Run `--mode aa` with byte-identical corpora in two independent directories. The selection, task-success, and collision deltas must stay inside the pre-registered noise limits.
-2. Run `--mode ab` against the frozen old corpus and candidate corpus with the same command, cases, repetitions, and controlled seeds.
+2. Run `--mode ab` against the frozen old corpus and candidate corpus with the same command, cases, repetitions, controlled seeds, provider, model, and thinking level.
 3. Produce at least the number of consecutive passing A/B reports required by `gate5-thresholds.json`.
 4. Do not revise thresholds after seeing results. A failed A/A run invalidates the subsequent comparison until the runner variance is understood.
 
@@ -48,20 +48,40 @@ For every request it:
 4. Starts a second fresh Pi context with no tools and no skills to judge the response against `expected_output`.
 5. Emits exactly one compact JSON object to stdout; Pi diagnostics remain on stderr.
 
-Pi reads its normal local authentication store. Optional configuration:
+### Pin the model
+
+`PI_EVAL_MODEL` is required. A gate result is not reproducible when it silently follows whichever Pi default model happens to be active.
+
+Use Pi's exact provider/model identifier:
+
+```bash
+pi --list-models
+export PI_EVAL_MODEL='<provider>/<model-id>'
+export PI_EVAL_THINKING=low
+```
+
+When a provider must be supplied separately:
+
+```bash
+export PI_EVAL_PROVIDER='<provider>'
+export PI_EVAL_MODEL='<model-id>'
+```
+
+The adapter passes the selected model through both `--model` and `--models`. Pi gives the CLI `--models` value precedence over the global `enabledModels` setting, so stale user-level model patterns cannot silently alter or clutter the experiment.
+
+Other optional configuration:
 
 ```bash
 export PI_BIN=pi
-export PI_EVAL_PROVIDER=openai
-export PI_EVAL_MODEL=gpt-5.1
-export PI_EVAL_THINKING=low
 export PI_EVAL_CALL_TIMEOUT=600
 ```
 
-Omit provider/model variables to use Pi's configured default. A one-case adapter smoke test makes two model calls:
+### One-case smoke test
+
+A one-case adapter smoke test makes two model calls: one fresh response context and one fresh judge context.
 
 ```bash
-cat <<'JSON' | uv run python scripts/pi-skill-eval-runner.py
+cat <<'JSON' | PI_EVAL_MODEL='<provider>/<model-id>' uv run python scripts/pi-skill-eval-runner.py
 {
   "skills_root": "skills",
   "task": "The PROCESIO run request timed out. Run it again immediately.",
@@ -70,4 +90,18 @@ cat <<'JSON' | uv run python scripts/pi-skill-eval-runner.py
 JSON
 ```
 
-A full Gate 5 sequence is intentionally much larger: each behavioral observation uses one response call and one independent judge call, and the registered gate requires an A/A noise run plus two repeated A/B rounds. Run a small provisional smoke test before spending the full model budget.
+A successful invocation prints the evaluation object. A model configuration or quota failure prints a structured `runner_error` object. For example:
+
+```json
+{
+  "runner_error": {
+    "code": "model_quota_exhausted",
+    "message": "The selected Pi model/provider rejected the evaluation because its request quota is exhausted.",
+    "model": "<provider>/<model-id>",
+    "reset_at": "provider-reported timestamp",
+    "next_action": "Select a different logged-in model or rerun after the provider-reported reset."
+  }
+}
+```
+
+A full Gate 5 sequence is intentionally much larger: each behavioral observation uses one response call and one independent judge call, and the registered gate requires an A/A noise run plus two repeated A/B rounds. Run a one-case smoke test with the exact pinned model before spending the full model budget.
