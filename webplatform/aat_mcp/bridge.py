@@ -2,19 +2,15 @@
 
 Exposes the live registry to a driver as a small generic surface and executes
 capabilities by shelling to scripts/run-tool.py / run-agent.py with a Python LIST
-argv (no shell), so structured args (including JSON objects) pass cleanly. This is
-the fix for the bash-passthrough tax observed in the B0 spike: the model no longer
-fights shell quote-escaping, and gets typed capability schemas instead of `--help`
-spelunking.
-
-Execution reuses dashboard.server.runner (the existing, tested subprocess bridge)
-so there is ONE definition of "run a framework script and normalize its JSON".
+argv (no shell), so structured args (including JSON objects) pass cleanly. It also
+supports bounded capability search and progressive skill-resource retrieval.
 """
 from __future__ import annotations
 
 import contextvars
 import json
 import os
+import re
 import sys
 import time
 import urllib.error
@@ -27,14 +23,10 @@ if str(_REPO) not in sys.path:
     sys.path.insert(0, str(_REPO))
 
 import registry  # noqa: E402
-from dashboard.server import runner  # noqa: E402  (shared shell-to-script bridge)
-from tools._lib import accounting  # noqa: E402  (per-work-unit accounting seam, P0.0-05)
+from dashboard.server import runner  # noqa: E402
+from tools._lib import accounting  # noqa: E402
+from tools._lib.skill_resources import read_text_resource, resource_index  # noqa: E402
 
-# Per-request user id (multi-user web platform). Set by the aat-mcp HTTP server from a
-# SERVER-ESTABLISHED header (the authenticated session), NEVER from model output. Read
-# here to run the tool/agent subprocess as that user, so userdata + creds isolate
-# per-user (userdata.base() -> <root>/<user>, file creds -> per-user namespace). Unset =
-# single-user, exactly as before (local Claude Code unaffected).
 _user_ctx: "contextvars.ContextVar" = contextvars.ContextVar("aat_user_id", default=None)
 
 
@@ -47,10 +39,6 @@ def reset_user(token) -> None:
     _user_ctx.reset(token)
 
 
-# Per-request WORKSPACE id (multi-tenant PROCESIO module, spec P0.0-01). Set alongside
-# the user from the SERVER-ESTABLISHED session, never from model output. Threads
-# AAT_WORKSPACE_ID into the tool/agent subprocess env so userdata + creds isolate per
-# (workspace, user). Unset = single-workspace, exactly as before.
 _workspace_ctx: "contextvars.ContextVar" = contextvars.ContextVar(
     "aat_workspace_id", default=None)
 
@@ -74,12 +62,10 @@ def _user_env() -> dict | None:
         env["AAT_WORKSPACE_ID"] = str(ws)
     return env or None
 
-# Tools that cannot run in a container (browser/profile, DB driver, media system libs).
-# When AAT_HOST_RUNNER_URL is set, these (and agents that drive them) are executed on
-# the HOST via the host-runner instead of in-container. Extend via AAT_HOST_ONLY_TOOLS.
+
 _HOST_ONLY_TOOLS = {
     "sqlserver", "web",
-    }
+}
 
 
 def _host_only_set() -> set[str]:
@@ -88,11 +74,10 @@ def _host_only_set() -> set[str]:
 
 
 def _is_host_only(kind: str, name: str) -> bool:
-    """A tool is host-only if listed or its manifest declares a web_session. An agent
-    is host-only if any tool it drives is host-only."""
-    hoset = _host_only_set()
+    """A tool is host-only if listed or declares a web session; agents inherit it."""
+    host_set = _host_only_set()
     if kind == "tool":
-        if name in hoset:
+        if name in host_set:
             return True
         try:
             return getattr(registry.get_tool(name), "web_session", None) is not None
@@ -102,11 +87,11 @@ def _is_host_only(kind: str, name: str) -> bool:
         drives = set(getattr(registry.get_agent(name), "tools", []) or [])
     except Exception:  # noqa: BLE001
         return False
-    if drives & hoset:
+    if drives & host_set:
         return True
-    for t in drives:
+    for tool in drives:
         try:
-            if getattr(registry.get_tool(t), "web_session", None) is not None:
+            if getattr(registry.get_tool(tool), "web_session", None) is not None:
                 return True
         except Exception:  # noqa: BLE001
             pass
@@ -124,17 +109,17 @@ def _delegate(kind: str, name: str, action: str | None, args: dict | None) -> di
         headers["Authorization"] = f"Bearer {token}"
     uid = _user_ctx.get()
     if uid:
-        headers["X-AAT-User"] = str(uid)  # host-only tools run as this user too
+        headers["X-AAT-User"] = str(uid)
     ws = _workspace_ctx.get()
     if ws:
-        headers["X-AAT-Workspace"] = str(ws)  # ...and in this workspace
+        headers["X-AAT-Workspace"] = str(ws)
     req = urllib.request.Request(url, data=payload, method="POST", headers=headers)
     try:
         with urllib.request.urlopen(req, timeout=330) as resp:  # noqa: S310 (host-local)
             return json.loads(resp.read().decode("utf-8") or "null")
-    except urllib.error.URLError as e:
+    except urllib.error.URLError as exc:
         return {"ok": False, "error": {"code": "host_runner_unreachable",
-                                       "message": f"host-only {kind} {name!r}: {e}"}}
+                                       "message": f"host-only {kind} {name!r}: {exc}"}}
 
 
 def _compact(entry: dict, kind: str) -> dict:
@@ -150,8 +135,7 @@ def _compact(entry: dict, kind: str) -> dict:
 
 
 def _full(entry: dict, kind: str) -> dict:
-    """Full action + arg schema for one capability — the structured replacement for
-    `--help`, so the driver never has to spelunk help text."""
+    """Full action + arg schema for one capability."""
     def _args(arglist):
         return [
             {
@@ -170,12 +154,11 @@ def _full(entry: dict, kind: str) -> dict:
         "ready": bool(entry.get("ready", True)),
         "missing_secrets": entry.get("missing_secrets", []),
         "tools": entry.get("tools", []) if kind == "agent" else None,
-        # Flat tools (e.g. hello-world) keep args at the top level, not under actions.
         "args": _args(entry.get("args")) if not entry.get("actions") else [],
         "actions": [
             {
-                "name": a["name"],
-                "description": a.get("description", ""),
+                "name": action["name"],
+                "description": action.get("description", ""),
                 "args": [
                     {
                         "name": arg["name"],
@@ -183,10 +166,10 @@ def _full(entry: dict, kind: str) -> dict:
                         "required": bool(arg.get("required", False)),
                         "description": arg.get("description", ""),
                     }
-                    for arg in a.get("args", [])
+                    for arg in action.get("args", [])
                 ],
             }
-            for a in entry.get("actions", [])
+            for action in entry.get("actions", [])
         ],
     }
 
@@ -195,17 +178,14 @@ _REG_CACHE: dict = {}
 
 
 def _scan_registry():
-    """Cache the registry scan (parse ~74 manifests + per-secret presence checks) for a
-    short TTL. In a running container the registry is static and the model calls
-    capabilities several times per loop; without this each call re-parses every manifest
-    and re-checks every secret. AAT_REGISTRY_TTL seconds (0 = off)."""
+    """Cache registry scans for AAT_REGISTRY_TTL seconds (0 disables caching)."""
     ttl = float(os.environ.get("AAT_REGISTRY_TTL", "30") or 0)
     if ttl > 0:
         hit = _REG_CACHE.get("data")
         if hit is not None and hit[1] > time.monotonic():
             return hit[0]
     tools = registry.list_tools()
-    agents = registry.list_agents({t["name"]: t for t in tools})
+    agents = registry.list_agents({tool["name"]: tool for tool in tools})
     skills = registry.list_skills()
     if ttl > 0:
         _REG_CACHE["data"] = ((tools, agents, skills), time.monotonic() + ttl)
@@ -213,41 +193,115 @@ def _scan_registry():
 
 
 def capabilities(kind: str | None = None, name: str | None = None) -> dict:
-    """No name -> compact list of every ready tool/agent (+ skills), like the
-    router map. With name -> the full action/arg schema for that one capability."""
+    """List compact capabilities or return one full tool/agent/skill entry."""
     tools, agents, skills = _scan_registry()
 
     if name:
-        for e in tools:
-            if e.get("name") == name:
-                return {"capability": _full(e, "tool")}
-        for e in agents:
-            if e.get("name") == name:
-                return {"capability": _full(e, "agent")}
-        raise KeyError(f"no tool or agent named {name!r}")
+        for entry_kind, entries in (("tool", tools), ("agent", agents), ("skill", skills)):
+            for entry in entries:
+                if entry.get("name") == name:
+                    return {"capability": _full(entry, entry_kind)}
+        raise KeyError(f"no tool, agent, or skill named {name!r}")
 
     out: list[dict] = []
     if kind in (None, "tool"):
-        out += [_compact(e, "tool") for e in tools if not e.get("error")]
+        out += [_compact(entry, "tool") for entry in tools if not entry.get("error")]
     if kind in (None, "agent"):
-        out += [_compact(e, "agent") for e in agents if not e.get("error")]
+        out += [_compact(entry, "agent") for entry in agents if not entry.get("error")]
     if kind in (None, "skill"):
-        out += [_compact(e, "skill") for e in skills
-                if not e.get("error")]
+        out += [_compact(entry, "skill") for entry in skills if not entry.get("error")]
     return {"count": len(out), "capabilities": out}
 
 
+_SEARCH_TOKEN = re.compile(r"[a-z0-9][a-z0-9._+-]*", re.IGNORECASE)
+
+
+def _search_tokens(value: str) -> list[str]:
+    return [token.lower() for token in _SEARCH_TOKEN.findall(value or "")]
+
+
+def _search_score(query: str, text: str) -> int:
+    query_norm = " ".join(_search_tokens(query))
+    text_norm = " ".join(_search_tokens(text))
+    if not query_norm or not text_norm:
+        return 0
+    score = 25 if query_norm in text_norm else 0
+    for token in set(query_norm.split()):
+        if token in text_norm.split():
+            score += 4
+        elif token in text_norm:
+            score += 1
+    return score
+
+
+def search_capabilities(query: str, kind: str | None = None,
+                        name: str | None = None, limit: int = 10) -> dict:
+    """Search capability and action metadata without returning the whole registry."""
+    query = str(query or "").strip()
+    if not query:
+        raise ValueError("query is required")
+    if kind not in (None, "tool", "agent", "skill"):
+        raise ValueError("kind must be tool, agent, or skill")
+    limit = max(1, min(int(limit or 10), 50))
+    tools, agents, skills = _scan_registry()
+    results: list[dict[str, Any]] = []
+
+    for entry_kind, entries in (("tool", tools), ("agent", agents), ("skill", skills)):
+        if kind and entry_kind != kind:
+            continue
+        for entry in entries:
+            if entry.get("error") or (name and entry.get("name") != name):
+                continue
+            routing = entry.get("routing") or {}
+            base_text = " ".join([
+                entry.get("name", ""), entry.get("description", ""),
+                " ".join(routing.get("triggers") or []),
+            ])
+            base_score = _search_score(query, base_text)
+            if base_score:
+                results.append({
+                    "kind": entry_kind,
+                    "name": entry["name"],
+                    "action": None,
+                    "description": (entry.get("description") or "")[:320],
+                    "score": base_score,
+                    "ready": bool(entry.get("ready", True)),
+                })
+            if entry_kind == "skill":
+                continue
+            for action in entry.get("actions") or []:
+                args = action.get("args") or []
+                action_text = " ".join([
+                    entry.get("name", ""), action.get("name", ""),
+                    action.get("description", ""),
+                    " ".join(arg.get("name", "") for arg in args),
+                ])
+                action_score = _search_score(query, action_text)
+                if not action_score:
+                    continue
+                results.append({
+                    "kind": entry_kind,
+                    "name": entry["name"],
+                    "action": action["name"],
+                    "description": (action.get("description") or "")[:320],
+                    "required_args": [arg["name"] for arg in args if arg.get("required")],
+                    "score": action_score + 2,
+                    "ready": bool(entry.get("ready", True)),
+                })
+
+    results.sort(key=lambda row: (-row["score"], row["kind"], row["name"], row.get("action") or ""))
+    total = len(results)
+    return {"query": query, "total_matches": total, "count": min(total, limit),
+            "results": results[:limit]}
+
+
 def run_tool(tool: str, action: str | None, args: dict[str, Any] | None) -> dict:
-    """Execute a tool. args is a JSON object -> --flags via runner.flags_from
-    (dict/list values are JSON-encoded into ONE argv element; no shell). Host-only
-    tools are delegated to the host-runner when AAT_HOST_RUNNER_URL is set."""
-    # Wrap in a per-work-unit accounting span (no-op locally; the platform injects a
-    # sink that acquires an EE slot + emits TrackAction - spec P0.0-05 / seam S2).
+    """Execute a tool with structured arguments."""
     with accounting.work_unit("tool", ws=_workspace_ctx.get(),
-                              user=_user_ctx.get()) as wu:
-        wu["tool"] = tool
+                              user=_user_ctx.get()) as work_unit:
+        work_unit["tool"] = tool
         if action:
-            wu["action"] = action
+            work_unit["action"] = action
         if os.environ.get("AAT_HOST_RUNNER_URL") and _is_host_only("tool", tool):
             return _delegate("tool", tool, action, args)
         argv = ([action] if action else []) + runner.flags_from(args)
@@ -256,10 +310,10 @@ def run_tool(tool: str, action: str | None, args: dict[str, Any] | None) -> dict
 
 def run_agent(agent: str, action: str | None, args: dict[str, Any] | None) -> dict:
     with accounting.work_unit("agent", ws=_workspace_ctx.get(),
-                              user=_user_ctx.get()) as wu:
-        wu["agent"] = agent
+                              user=_user_ctx.get()) as work_unit:
+        work_unit["agent"] = agent
         if action:
-            wu["action"] = action
+            work_unit["action"] = action
         if os.environ.get("AAT_HOST_RUNNER_URL") and _is_host_only("agent", agent):
             return _delegate("agent", agent, action, args)
         argv = ([action] if action else []) + runner.flags_from(args)
@@ -267,8 +321,14 @@ def run_agent(agent: str, action: str | None, args: dict[str, Any] | None) -> di
 
 
 def get_skill(name: str) -> dict:
-    """Return a skill's full markdown (model-decided skill loading — the substitute
-    for harness auto-trigger; see spec 04)."""
-    m = registry.get_skill(name)  # raises KeyError if unknown
-    md = (m.path / "SKILL.md").read_text(encoding="utf-8")
-    return {"name": name, "content": md}
+    """Return a skill's markdown plus a metadata-only bundled-resource index."""
+    manifest = registry.get_skill(name)
+    markdown = (manifest.path / "SKILL.md").read_text(encoding="utf-8")
+    return {"name": manifest.name, "content": markdown,
+            "resources": resource_index(manifest.path)}
+
+
+def get_skill_resource(name: str, path: str) -> dict:
+    """Return one safe UTF-8 resource below references/, scripts/, or assets/."""
+    manifest = registry.get_skill(name)
+    return {"name": manifest.name, "resource": read_text_resource(manifest.path, path)}
