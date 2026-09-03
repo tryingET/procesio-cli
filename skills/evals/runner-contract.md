@@ -35,3 +35,39 @@ Print one object:
 ```
 
 Diagnostic logs belong on stderr. Do not include model/API secrets, credentials, or sensitive test payloads. The wrapper stores stdout results as evaluation artifacts, so use only sanitized fixtures and controlled environments.
+
+## Local Pi adapter
+
+`scripts/pi-skill-eval-runner.py` satisfies this contract using Pi's existing local login. It never accepts or prints a provider API key.
+
+For every request it:
+
+1. Copies the supplied corpus to a neutral temporary path so the model cannot see `candidate` or `baseline` directory names.
+2. Starts Pi with `--no-session`, disabled context-file/extension/ambient-skill discovery, and only `read`, `grep`, `find`, and `ls` for the response run.
+3. Replaces user-level system-prompt customizations with the evaluation system prompt.
+4. Starts a second fresh Pi context with no tools and no skills to judge the response against `expected_output`.
+5. Emits exactly one compact JSON object to stdout; Pi diagnostics remain on stderr.
+
+Pi reads its normal local authentication store. Optional configuration:
+
+```bash
+export PI_BIN=pi
+export PI_EVAL_PROVIDER=openai
+export PI_EVAL_MODEL=gpt-5.1
+export PI_EVAL_THINKING=low
+export PI_EVAL_CALL_TIMEOUT=600
+```
+
+Omit provider/model variables to use Pi's configured default. A one-case adapter smoke test makes two model calls:
+
+```bash
+cat <<'JSON' | uv run python scripts/pi-skill-eval-runner.py
+{
+  "skills_root": "skills",
+  "task": "The PROCESIO run request timed out. Run it again immediately.",
+  "expected_output": "Treat the outcome as unknown, reconcile instances before retry, and guard duplicate side effects."
+}
+JSON
+```
+
+A full Gate 5 sequence is intentionally much larger: each behavioral observation uses one response call and one independent judge call, and the registered gate requires an A/A noise run plus two repeated A/B rounds. Run a small provisional smoke test before spending the full model budget.
