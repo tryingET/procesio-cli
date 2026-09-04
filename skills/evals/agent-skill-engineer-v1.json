@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-04",
+  "kind": "agent-skill-engineer-design-and-static-evidence",
+  "skill": {
+    "name": "agent-skill-engineer",
+    "version": "1.0.0",
+    "status": "candidate",
+    "primary_outcome": "Engineer bounded Agent Skill packages whose routing, structure, behavior, and real outcome can be independently verified.",
+    "portfolio_owner_for": [
+      "Agent Skill and SKILL.md authoring",
+      "skill routing and portfolio boundaries",
+      "progressive disclosure and context budgeting",
+      "fixed-rubric behavioral evaluation",
+      "skill baselines, A/A noise checks, A/B comparisons, and field-proof design"
+    ],
+    "explicit_non_owners": [
+      "ordinary procesio-cli repository implementation",
+      "PROCESIO workspace operations",
+      "unrelated CLI design",
+      "one-off content creation"
+    ]
+  },
+  "package": {
+    "activation_file": "skills/agent-skill-engineer/SKILL.md",
+    "references": [
+      "references/decision-framework.md",
+      "references/authoring-standard.md",
+      "references/evaluation-standard.md",
+      "references/review-standard.md",
+      "references/portability-standard.md",
+      "references/expert-lenses.md"
+    ],
+    "deterministic_helpers": [
+      "scripts/scaffold_skill.py",
+      "scripts/audit_skill.py"
+    ],
+    "evaluation_suite": "evals/evals.json"
+  },
+  "design_invariants": [
+    "Evidence precedes prose and production-readiness claims.",
+    "Every trigger region has one primary owner and named nearest exclusions.",
+    "Only always-needed decisions stay in SKILL.md; optional depth is loaded on demand.",
+    "Deterministic and fragile work moves into bounded scripts rather than repeated prose.",
+    "Every juror receives the same ordered atomic criterion IDs, descriptions, and required flags.",
+    "Host code validates jury output and computes aggregate task success.",
+    "New skills compare against a no-skill baseline; improvements compare against an immutable old corpus.",
+    "Operational skills require controlled direct field proof rather than proxy success.",
+    "Recurring failures are encoded into validators, tests, schemas, scripts, or runtime guards at the owning layer."
+  ],
+  "source_inputs": [
+    {
+      "source": "Agent Skills specification",
+      "url": "https://agentskills.io/specification",
+      "used_for": "portable package and progressive-disclosure conventions"
+    },
+    {
+      "source": "OpenAI skill creator",
+      "url": "https://github.com/openai/skills/tree/main/skills/.system/skill-creator",
+      "used_for": "skill qualification, package structure, concise authoring, and evaluation workflow"
+    },
+    {
+      "source": "Anthropic skill creator",
+      "url": "https://github.com/anthropics/skills/tree/main/skills/skill-creator",
+      "used_for": "progressive disclosure, scripts/assets/references, and iterative evaluation"
+    },
+    {
+      "source": "Cursor pstack",
+      "url": "https://github.com/cursor/plugins/tree/main/pstack",
+      "used_for": "alternative-design exploration, proof-before-claim, automation of repeated method, and encoding lessons structurally"
+    },
+    {
+      "source": "procesio-cli field observations and failed identical-corpus A/A run",
+      "url": "skills/evals/field-observations.json",
+      "used_for": "direct outcome proof, unknown-write handling, fixed jury criteria, and failure-layer attribution"
+    }
+  ],
+  "deterministic_evidence": {
+    "published_skill_count": 5,
+    "routing_cases": 52,
+    "routing_correct": 52,
+    "routing_accuracy": 1.0,
+    "forbidden_collisions": 0,
+    "routing_artifact": "skills/evals/candidate-routing-v2.json",
+    "self_audit_regression": "skills/tests/test_agent_skill_engineer.py::test_meta_skill_passes_its_deterministic_audit",
+    "fixed_rubric_portfolio_regression": "skills/tests/test_agent_skill_engineer.py::test_every_published_skill_uses_fixed_atomic_eval_rubrics",
+    "cross_platform_ci_required": [
+      "ubuntu-latest / Python 3.11",
+      "ubuntu-latest / Python 3.12",
+      "macos-latest / Python 3.11",
+      "macos-latest / Python 3.12",
+      "windows-latest / Python 3.11",
+      "windows-latest / Python 3.12"
+    ]
+  },
+  "behavioral_status": {
+    "global_suite_version": 4,
+    "rubric_contract": "fixed-jury-rubric-v2",
+    "fresh_aa_required": true,
+    "old_vs_new_ab_required_after_aa": true,
+    "required_consecutive_passing_ab_rounds": 2,
+    "release_eligible": false
+  },
+  "limitations": [
+    "Deterministic routing is not proof of end-to-end behavioral superiority.",
+    "The previous suite-v2 A/A run measured a dynamic-jury contract and cannot validate the suite-v4 fixed-rubric evaluator.",
+    "The meta skill has static, routing, and repository-integration evidence, but its own fresh repeated model A/A/A-B evidence is still pending.",
+    "Model-based expert lenses are adversarial design prompts, not substitutes for accountable qualified human review in regulated or high-consequence domains."
+  ],
+  "secret_material_recorded": false
+}
