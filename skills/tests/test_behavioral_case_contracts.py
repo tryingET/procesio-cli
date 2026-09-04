@@ -23,17 +23,18 @@ def _criterion_ids(case: dict) -> list[str]:
     return [entry["id"] for entry in case["expected_output"]["criteria"]]
 
 
-def test_behavioral_suite_records_the_fixed_jury_revision():
+def test_behavioral_suite_records_the_fixed_jury_and_five_skill_revision():
     data = _data()
 
     assert data["schema_version"] == 2
-    assert data["suite_version"] == 3
+    assert data["suite_version"] == 4
     assert data["frozen_on"] == "2026-09-04"
     assert data["rubric_contract"] == "fixed-jury-rubric-v2"
     reason = data["revision_reason"].lower()
-    assert "byte-identical" in reason
-    assert "derive its own assertion set" in reason
-    assert "host computes task_success" in reason
+    assert "fixed ordered jury criteria" in reason
+    assert "agent-skill-engineer" in reason
+    assert "five-skill" in reason
+    assert "original two-skill baseline" in reason
 
 
 def test_every_case_supplies_the_same_shape_of_atomic_fixed_rubric():
@@ -75,3 +76,24 @@ def test_judge_does_not_duplicate_objective_skill_selection_as_a_rubric_item():
         "does_not_apply_sql_server_specific_guidance",
         "requests_postgresql_specific_plan_evidence",
     ]
+
+
+def test_global_suite_covers_agent_skill_engineer_and_its_boundaries():
+    expected = {
+        "create-repeatable-operational-skill": "agent-skill-engineer",
+        "one-off-prompt-is-not-a-skill": None,
+        "repository-code-remains-maintainer-owned": "procesio-cli-maintainer",
+        "reject-giant-untested-skill-pressure": "agent-skill-engineer",
+    }
+
+    for case_id, expected_skill in expected.items():
+        case = _case(case_id)
+        assert case["expected_skill"] == expected_skill
+        assert case["kind"] in {"positive", "negative", "overlap", "pressure"}
+
+    assert "agent-skill-engineer" in _case("one-off-prompt-is-not-a-skill")[
+        "forbidden_skills"
+    ]
+    assert "agent-skill-engineer" in _case(
+        "repository-code-remains-maintainer-owned"
+    )["forbidden_skills"]
