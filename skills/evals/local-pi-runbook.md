@@ -118,11 +118,36 @@ bash scripts/start-local-pi-gate5-aa-unattended.sh \
 
 The call cap includes preflight attempts and an upper bound for evaluation calls. A completed A/A run stops immediately even when time or call budget remains. An A/A noise-gate failure also stops immediately for inspection; the coordinator does not roll into A/B.
 
-## 6. Formal order
+## 6. Diagnose a failed A/A gate without model calls
+
+Do not loosen a registered threshold and do not start A/B after an A/A failure. Pair the two byte-identical arms and inspect the exact failed rows first:
+
+```bash
+uv run python scripts/analyze-gate5-aa.py \
+  scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ
+```
+
+The command makes zero model calls. It verifies the A/A fingerprints, pairs rows by case and repetition, reports directional task-success disagreements and routing disagreements, and writes a bounded review queue to:
+
+```text
+<run-root>/results/aa-diagnostic.json
+```
+
+The arm names `candidate` and `baseline` are semantically arbitrary in A/A. A directional difference therefore measures response-plus-judge variance, not a skill advantage. The diagnostic exact sign test is descriptive only and cannot override the pre-registered gate.
+
+Classify the failed rows before changing anything:
+
+- If a response clearly meets the frozen criterion but its judge marks it false, version and stabilize the judge contract.
+- If a response genuinely omits a required behavior, retune the relevant skill or case contract.
+- If routing differs between identical arms, retune discovery and routing.
+- Any evaluator, suite, model, thinking-level, threshold, or skill change requires a new A/A run from observation zero.
+
+## 7. Formal order
 
 1. Complete the byte-identical A/A noise-floor run.
-2. Inspect its report before starting A/B.
-3. Run two blinded A/B rounds with the frozen baseline and exactly the same model and thinking level.
-4. Do not revise thresholds after viewing formal results.
+2. Diagnose and resolve any A/A failure without changing thresholds post hoc.
+3. Start a fresh A/A experiment after any protocol or skill change.
+4. Only after A/A passes, run two blinded A/B rounds with the frozen baseline and exactly the same model and thinking level.
+5. Do not revise thresholds after viewing formal results.
 
 The checkpoint mechanism prevents provider limits from converting a long formal run into an all-or-nothing operation; it does not weaken the registered Gate 5 thresholds.
