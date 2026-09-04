@@ -57,3 +57,14 @@ def test_nested_bundled_resource_is_blocking(tmp_path):
     skill.write_text("---\nname: demo\ndescription: demo\n---\n# Demo\n")
     errors = skill_integrity_errors(_manifest(), skill)
     assert "nested bundled resource: references/nested/guide.md" in errors
+
+
+def test_python_bytecode_caches_are_not_bundled_resources(tmp_path):
+    root = tmp_path / "demo"
+    cache = root / "scripts" / "__pycache__"
+    cache.mkdir(parents=True)
+    (cache / "helper.cpython-312.pyc").write_text("bytecode fixture", encoding="utf-8")
+    skill = root / "SKILL.md"
+    skill.write_text("---\nname: demo\ndescription: demo\n---\n# Demo\n")
+
+    assert skill_integrity_errors(_manifest(), skill) == []
