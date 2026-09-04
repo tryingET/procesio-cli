@@ -23,7 +23,7 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 
-from _gate5_overnight.common import BASELINE_REF, MODEL, THINKING
+from _gate5_overnight.common import BASELINE_REF, MODEL, SUITE_VERSION, THINKING
 from _gate5_overnight.pipeline import run_pipeline
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,7 +81,7 @@ def launch(args: argparse.Namespace) -> int:
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
         run_root = (
             args.out_root
-            or repo / "scratchpad" / f"gate5-fixed-jury-v3-{stamp}"
+            or repo / "scratchpad" / f"gate5-fixed-jury-v{SUITE_VERSION}-{stamp}"
         ).expanduser().resolve()
     run_root.mkdir(parents=True, exist_ok=True)
 
