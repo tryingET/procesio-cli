@@ -6,8 +6,8 @@
     "Gate 5 has not yet produced two fresh-context, blinded, repeated model A/B reports above the registered bar."
   ],
   "last_green_ci": {
-    "run_id": 33813346862,
-    "head_sha": "a214846699aa028d4e85567cbc8fa051074724e2",
+    "run_id": 33852503160,
+    "head_sha": "9701707d39c11dafae517664eb8bf76cdb207f22",
     "matrix": [
       "ubuntu-latest / Python 3.11",
       "ubuntu-latest / Python 3.12",
@@ -78,7 +78,9 @@
         "skills/evals/field-observations.json",
         "skills/evals/local-pi-preflight.json",
         "skills/evals/local-pi-smoke-deepseek-v4-pro.json",
-        "skills/evals/local-pi-smoke-muse-spark-1.3-contributor.json"
+        "skills/evals/local-pi-smoke-muse-spark-1.3-contributor.json",
+        "skills/evals/local-pi-balanced-calibration-muse-spark-1.3-before-readonly-fix.json",
+        "skills/evals/local-pi-calibration-mcp-resource-v2-success.json"
       ]
     },
     {
