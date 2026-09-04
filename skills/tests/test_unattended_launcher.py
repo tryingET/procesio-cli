@@ -27,6 +27,14 @@ def test_launcher_preserves_checkpoint_and_handles_stale_process_state():
     assert "rm -f \"$PID_FILE\"" in text
 
 
+def test_launcher_waits_for_immediate_detached_startup_failures():
+    text = LAUNCHER.read_text(encoding="utf-8")
+
+    assert "ATTEMPT <= 10" in text
+    assert "exited during startup" in text
+    assert '"status": "complete"' in text
+
+
 def test_launcher_has_bounded_unattended_defaults():
     text = LAUNCHER.read_text(encoding="utf-8")
 
