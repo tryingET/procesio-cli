@@ -24,16 +24,27 @@ you whether the idea fits before you write the code.
 
 1. Fork the repository and clone your fork.
 2. Create a branch: `git checkout -b fix-form-dto-parsing`.
-3. Install the dependencies: `uv sync`.
+3. Install the dependencies: `uv sync --all-extras`.
 4. Make your change, and add a test that fails without it.
-5. Run the suite: `uv run pytest`.
+5. Run the focused tests, then the complete gate set below.
 6. Push the branch and open a pull request against `main`.
 
-The two commands CI will run on your branch:
+CI runs:
 
 ```bash
-uv run pytest tools agents dashboard webplatform -q
+uv run pytest tools agents dashboard webplatform skills -q
+uv run python scripts/evaluate-skills.py \
+  --catalog skills/evals/baseline-catalog.json \
+  --verify-baseline skills/evals/baseline.json
+uv run python scripts/evaluate-skill-routing.py \
+  --catalog skills/evals/baseline-catalog.json \
+  --verify skills/evals/baseline-routing-v2.json
+uv run python scripts/evaluate-skill-routing.py \
+  --min-accuracy 0.95 --max-collision-rate 0
+uv run python scripts/validate-skills.py --strict-warnings
+uv run python scripts/check-skill-governance.py
 uv run python scripts/secret_scan.py
+uv run python scripts/build-router.py --check
 ```
 
 Leave **Allow edits by maintainers** checked. A maintainer can then push a small
@@ -60,6 +71,64 @@ your history.
 - **One JSON object on stdout, and nothing else.** Progress goes to stderr;
   failures print `{"error": {"code", "message", "details"}}` and exit non-zero.
   Callers parse that.
+- **Evidence matches the claim.** Static validation proves structure; it does not
+  prove runtime behavior. A successful API request proves transport; it does not
+  necessarily prove the intended platform state or output.
+
+## Contributing an Agent Skill
+
+Use `agent-skill-engineer` when the primary deliverable is a new or changed
+Agent Skill. Use `procesio-cli-maintainer` afterward for repository-specific
+integration, generated routing, translations, CI, and release controls.
+
+Start by loading the engineering skill and its relevant references:
+
+```bash
+python scripts/get-skill.py agent-skill-engineer --content
+python scripts/get-skill.py agent-skill-engineer \
+  --resource references/authoring-standard.md
+python scripts/get-skill.py agent-skill-engineer \
+  --resource references/evaluation-standard.md
+```
+
+A skill contribution must have:
+
+- one observable primary outcome and a bounded trigger/non-trigger region;
+- a description that can be distinguished from every neighboring skill before
+  the body loads;
+- only always-needed decisions in `SKILL.md`, with conditional detail under
+  directly linked `references/`, deterministic work under `scripts/`, and output
+  materials under `assets/`;
+- positive, negative, nearest-overlap, and unsafe-pressure cases;
+- a no-skill baseline for a new capability or an immutable old-skill snapshot
+  for an improvement;
+- ordered atomic jury criteria with exact IDs, binary pass descriptions, and
+  required flags; every juror receives the same rubric and host code computes
+  the aggregate verdict;
+- direct field proof when the skill controls a tool, platform, mutation, or other
+  externally observable workflow;
+- version, owner, last verification date, source policy, evaluation path, and
+  curated routing triggers.
+
+Scaffold and audit helpers are available:
+
+```bash
+python skills/agent-skill-engineer/scripts/scaffold_skill.py <name> \
+  --root skills \
+  --description "<capability>. Use when <concrete trigger>."
+
+python skills/agent-skill-engineer/scripts/audit_skill.py \
+  skills/<name> --strict
+```
+
+The scaffolder refuses to overwrite an existing path. The audit is deterministic
+and makes no model or network calls. It does not replace the repository validator,
+portfolio-wide routing test, behavioral comparison, or controlled field proof.
+
+Do not call a skill production-ready because it is eloquent, because one model
+liked it, or because a static check passed. Record missing evidence explicitly.
+A change to the skill corpus, evaluation rubric, judge contract, model contract,
+or field workflow invalidates earlier formal evidence for that changed contract.
 
 ## Rules that come from how this repository is built
 
