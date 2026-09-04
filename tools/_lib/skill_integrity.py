@@ -14,10 +14,18 @@ _RESOURCE_REF_RE = re.compile(
     r"(?<![A-Za-z0-9_.-])((?:references|scripts|assets)/[A-Za-z0-9][A-Za-z0-9._/-]*)"
 )
 _RESOURCE_DIRS = {"references", "scripts", "assets"}
+_IGNORED_RESOURCE_PARTS = {"__pycache__"}
 
 
 def _inside(root: Path, candidate: Path) -> bool:
     return candidate == root or root in candidate.parents
+
+
+def _ignored_resource(path: Path) -> bool:
+    """Ignore interpreter caches that are not part of the skill package."""
+    return path.suffix.lower() == ".pyc" or any(
+        part in _IGNORED_RESOURCE_PARTS for part in path.parts
+    )
 
 
 def _resource_refs(root: Path) -> set[str]:
@@ -96,6 +104,8 @@ def skill_integrity_errors(manifest: Any, skill_md: Path) -> list[str]:
             if not path.is_file():
                 continue
             rel = path.relative_to(root)
+            if _ignored_resource(rel):
+                continue
             if len(rel.parts) > 2:
                 errors.append(f"nested bundled resource: {rel.as_posix()}")
             try:
