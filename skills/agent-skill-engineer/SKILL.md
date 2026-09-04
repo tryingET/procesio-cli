@@ -1,12 +1,14 @@
 ---
 name: agent-skill-engineer
 description: >-
-  Design, create, refactor, audit, and evaluate Agent Skills and SKILL.md packages.
-  Use when turning a repeated workflow into a skill, optimizing skill descriptions or
-  routing boundaries, splitting instructions into progressive references/scripts/assets,
-  building fixed-rubric tests and old/no-skill baselines, measuring A/A or A/B behavior,
-  or proving a skill on the real artifact. Do not use for ordinary repository
-  implementation unless the primary deliverable is an Agent Skill.
+  Engineer reusable Agent Skill packages and SKILL.md routing and evaluation systems.
+  Use when the primary deliverable is an Agent Skill: turn a repeated agent workflow
+  into a skill, author or revise a SKILL.md or a domain skill such as the SQL optimizer
+  skill, change a skill description or trigger boundary, split skill content into
+  progressive references, scripts, or assets, build fixed-rubric baselines and A/A or
+  A/B skill evaluations, or audit a skill package. Do not use for ordinary repository
+  implementation, workspace operations, unrelated CLI design, image creation, or
+  one-off content.
 version: 1.0.0
 compatibility: Agent Skills compatible clients; Python 3.11+ for bundled helpers.
 owner: procesio-cli maintainers
