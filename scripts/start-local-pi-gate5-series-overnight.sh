@@ -27,7 +27,7 @@ if [[ -z "$MODEL" ]]; then
 fi
 
 COMMAND=(
-  uv run python "$ROOT/scripts/run-local-pi-gate5-series-unattended.py"
+  uv run --script "$ROOT/scripts/run-local-pi-gate5-overnight.py"
   --run-root "$RUN_ROOT"
   --max-hours "$MAX_HOURS"
   --batch-observations "$BATCH"
