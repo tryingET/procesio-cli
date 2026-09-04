@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "recorded_on": "2026-09-04",
+  "kind": "evaluation-contract-correction",
+  "previous_suite_version": 2,
+  "new_suite_version": 3,
+  "previous_contract": "dynamic judge-derived assertions",
+  "new_contract": "fixed-jury-rubric-v2",
+  "trigger": {
+    "experiment": "completed byte-identical A/A run",
+    "observations": 80,
+    "task_success_rate_delta": 0.075,
+    "registered_max_absolute_delta": 0.05
+  },
+  "root_cause": [
+    "Every judge received the same high-level expected-output prose, but the judge prompt instructed each model call to derive its own two-to-five assertion checks.",
+    "The generated assertion IDs and decomposition therefore varied between jurors even for the same case.",
+    "The model was also asked to produce an aggregate task_success value, duplicating aggregation that should have been deterministic host logic."
+  ],
+  "correction": [
+    "Each behavioral case now contains an ordered rubric with exact criterion IDs, exact binary pass descriptions, and required flags.",
+    "Every juror receives the same canonical rubric object for that case.",
+    "Jurors must return every and only the supplied criterion IDs with JSON Boolean values.",
+    "Missing, renamed, merged, split, or invented criterion IDs invalidate the grade.",
+    "The host computes task_success from the required criterion booleans; the juror no longer controls the aggregate.",
+    "Every observation records the criterion IDs and a SHA-256 rubric fingerprint."
+  ],
+  "framework_scope": {
+    "dspx_or_dspy_used_by_repository": false,
+    "implementation": "custom Python evaluation harness plus Pi CLI model calls",
+    "conclusion": "This defect was in the repository's judge prompt and schema, not in DSPx or DSPy."
+  },
+  "validity": [
+    "The suite-v2 A/A report remains useful evidence of the old evaluator's noise but cannot validate suite v3.",
+    "The criteria and judge contract changed, so the next formal step is a new suite-v3 A/A run from observation zero.",
+    "No A/B run may begin until the new A/A run passes the pre-registered thresholds."
+  ],
+  "secret_material_recorded": false
+}
