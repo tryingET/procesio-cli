@@ -49,6 +49,20 @@ def test_defaults_target_the_checked_out_repo_and_bounded_overnight_run():
     assert args.thinking == "medium"
 
 
+def test_detached_worker_is_relaunched_through_uv_script_mode(monkeypatch, tmp_path):
+    runner = _load_entrypoint()
+    monkeypatch.setattr(runner.shutil, "which", lambda name: "/usr/bin/uv" if name == "uv" else None)
+    args = runner.build_parser().parse_args(
+        ["--confirm-max-model-calls", "760"]
+    )
+
+    command = runner.child_command(args, tmp_path / "run")
+
+    assert command[:3] == ["/usr/bin/uv", "run", "--script"]
+    assert command[3] == str(SCRIPT.resolve())
+    assert "--detach" not in command
+
+
 def test_fixed_phase_order_and_frozen_two_skill_baseline():
     sys.path.insert(0, str(ROOT / "scripts"))
     try:
