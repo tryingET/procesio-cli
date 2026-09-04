@@ -6,9 +6,9 @@
 #
 # Optional:
 #   PI_EVAL_THINKING=medium
-#   GATE5_RUN_ROOT=scratchpad/gate5-series-v3-overnight
+#   GATE5_RUN_ROOT=scratchpad/gate5-series-v4-overnight
 #   GATE5_MAX_HOURS=8
-#   GATE5_MAX_MODEL_CALLS=560
+#   GATE5_MAX_MODEL_CALLS=900
 #   GATE5_BATCH_OBSERVATIONS=8
 set -euo pipefail
 
@@ -16,9 +16,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 ROOT="$(cd "$SCRIPT_DIR/.." && pwd -P)"
 MODEL="${PI_EVAL_MODEL:-}"
 THINKING="${PI_EVAL_THINKING:-medium}"
-RUN_ROOT="${GATE5_RUN_ROOT:-$ROOT/scratchpad/gate5-series-v3-overnight}"
+RUN_ROOT="${GATE5_RUN_ROOT:-$ROOT/scratchpad/gate5-series-v4-overnight}"
 MAX_HOURS="${GATE5_MAX_HOURS:-8}"
-MAX_CALLS="${GATE5_MAX_MODEL_CALLS:-560}"
+MAX_CALLS="${GATE5_MAX_MODEL_CALLS:-900}"
 BATCH="${GATE5_BATCH_OBSERVATIONS:-8}"
 
 if [[ -z "$MODEL" ]]; then
