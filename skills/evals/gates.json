@@ -4,7 +4,7 @@
   "release_eligible": false,
   "release_blockers": [
     "Gate 5 suite-v2 A/A completed but failed because byte-identical arms differed by 7.5 percentage points in judged task success. The evaluator allowed each juror to invent its own assertion decomposition.",
-    "Suite v3 now freezes exact atomic criterion IDs and host-side aggregation. A new suite-v3 A/A run from observation zero must pass before A/B begins.",
+    "Suite v3 now freezes exact atomic criterion IDs and host-side aggregation, and its one-case fixed-jury smoke passed. A new suite-v3 A/A run from observation zero must still pass before A/B begins.",
     "After A/A passes, two fresh-context blinded A/B reports above the registered bar are still required."
   ],
   "last_green_ci": {
@@ -75,10 +75,12 @@
         "scripts/pi-skill-eval-runner.py",
         "scripts/pi-skill-eval-runner-strict.py",
         "scripts/run-local-pi-gate5-aa.py",
+        "scripts/run-local-pi-gate5-series-unattended.py",
         "scripts/analyze-gate5-aa.py",
         "skills/evals/runner-contract.md",
         "skills/evals/gate5-thresholds.json",
         "skills/evals/gate5-dogfood.json",
+        "skills/evals/gate5-overnight-series.md",
         "skills/evals/field-observations.json",
         "skills/evals/local-pi-preflight.json",
         "skills/evals/local-pi-smoke-deepseek-v4-pro.json",
@@ -88,7 +90,8 @@
         "skills/evals/local-pi-aa-muse-spark-rate-limit.json",
         "skills/evals/local-pi-aa-muse-spark-checkpoint-20.json",
         "skills/evals/local-pi-aa-muse-spark-medium-v2-noise-failed.json",
-        "skills/evals/fixed-jury-rubric-v3.json"
+        "skills/evals/fixed-jury-rubric-v3.json",
+        "skills/evals/local-pi-fixed-jury-smoke-v3.json"
       ]
     },
     {
