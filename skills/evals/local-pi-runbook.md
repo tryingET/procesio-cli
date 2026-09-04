@@ -26,33 +26,66 @@ Success is:
 
 A `quota_exhausted` or `model_not_available` result means no skill evaluation began. Do not change the skill corpus in response to a provider/model failure.
 
-## 3. Pin the same model for the skill runner
+## 3. Pin the same model for every observation
 
 ```bash
 export PI_EVAL_MODEL='<provider/model-id>'
+export PI_EVAL_THINKING='medium'
 ```
 
-Then run the single-case smoke request through `scripts/pi-skill-eval-runner.py`.
+Do not change the model, provider, thinking level, corpus snapshot, suite version, repetition count, or seed while resuming one formal experiment. Do not export or paste Pi's OAuth/API credentials; Pi resolves its own local authentication.
 
-Optional reproducibility controls:
+## 4. Use checkpointed batches
+
+The formal A/A suite currently has eight cases and five repetitions over two byte-identical corpora:
+
+```text
+8 cases × 5 repetitions × 2 corpora = 80 observations
+80 observations × 2 calls = 160 model calls
+```
+
+Every completed observation is appended to `results/runs.jsonl`. A quota or rate-limit response now writes `results/partial-report.json` and exits with code `75`; this means **incomplete but resumable**, not a skill failure.
+
+Start a deliberately small batch:
 
 ```bash
-export PI_EVAL_PROVIDER='<provider>'
-export PI_EVAL_THINKING='low'
+PI_EVAL_MODEL='<provider/model-id>' \
+PI_EVAL_THINKING='medium' \
+uv run python scripts/run-local-pi-gate5-aa.py \
+  --max-new-observations 8 \
+  --confirm-model-calls 16
 ```
 
-Do not export or paste Pi's OAuth/API credentials. The Pi CLI resolves its own local authentication.
+Resume the exact run directory printed by the command:
 
-## Call budget
+```bash
+PI_EVAL_MODEL='<same-provider/model-id>' \
+PI_EVAL_THINKING='medium' \
+uv run python scripts/run-local-pi-gate5-aa.py \
+  --resume-run scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ \
+  --max-new-observations 8 \
+  --confirm-model-calls 16
+```
 
-The current behavioral corpus has eight cases. One paired round with five repetitions and two corpora invokes the runner 80 times. The current Pi runner uses one fresh agent call and one fresh judge call per invocation, so one full round uses 160 model calls. The required A/A plus two A/B rounds would use 480 model calls.
+Runs created before automatic resume metadata require a one-time confirmation of the existing checkpoint count:
 
-Therefore:
+```bash
+uv run python scripts/run-local-pi-gate5-aa.py \
+  --resume-run scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ \
+  --confirm-existing-observations 12 \
+  --max-new-observations 8 \
+  --confirm-model-calls 16
+```
 
-- run the one-call preflight first;
-- run one two-call smoke case second;
-- do not launch the full Gate 5 sequence on a limited subscription accidentally;
-- use a deliberately selected model/provider with adequate quota, or a controlled local inference endpoint;
-- retain the same pinned model and thinking level across A/A and A/B evidence.
+After that first adoption, omit `--confirm-existing-observations`; the saved metadata locks the model, thinking level, suite, seed, corpus fingerprint, thresholds, and strict runner. The harness skips completed `(case, repetition, corpus)` jobs and never truncates the checkpoint.
 
-The high call count is an explicit optimization target; it is not evidence that the skill corpus failed.
+Do not automatically retry a quota response. Re-run the one-call preflight first, then resume the same directory. A different model requires a new experiment from observation zero.
+
+## 5. Formal order
+
+1. Complete the byte-identical A/A noise-floor run.
+2. Inspect its report before starting A/B.
+3. Run two blinded A/B rounds with the frozen baseline and exactly the same model and thinking level.
+4. Do not revise thresholds after viewing formal results.
+
+The checkpoint mechanism prevents provider limits from converting a long formal run into an all-or-nothing operation; it does not weaken the registered Gate 5 thresholds.
