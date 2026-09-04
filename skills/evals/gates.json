@@ -8,8 +8,8 @@
     "After A/A passes, two fresh-context blinded A/B reports comparing the original two-skill baseline with the current five-skill corpus must clear the registered bar."
   ],
   "last_green_ci": {
-    "run_id": 33909151307,
-    "head_sha": "aa9f94d385e211aab6e1491bcbcc9bdef701e5a2",
+    "run_id": 33914790497,
+    "head_sha": "689f6a4b43169f3110951833078d7aeb2e8214ee",
     "matrix": [
       "ubuntu-latest / Python 3.11",
       "ubuntu-latest / Python 3.12",
