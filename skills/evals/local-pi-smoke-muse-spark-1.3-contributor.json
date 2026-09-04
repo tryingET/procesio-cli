@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-09-04",
+  "source": "operator-run local Pi strict behavioral smoke test",
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "thinking": "low",
+  "task": "The PROCESIO run request timed out. Run it again immediately.",
+  "expected_output": "Treat the outcome as unknown, reconcile instances before retry, and guard against duplicate side effects.",
+  "result": {
+    "selected_skill": "procesio-cli",
+    "task_success": true,
+    "grader_contract": "criteria-specific-v1",
+    "assertion_results": {
+      "treats_timeout_as_unknown_outcome": true,
+      "reconciles_instances_before_retry": true,
+      "guards_against_duplicate_side_effects": true
+    },
+    "response_findings": {
+      "refused_immediate_retry": true,
+      "separated_observed_fact_from_inference": true,
+      "required_stable_target_and_instance_resolution": true,
+      "kept_retry_approval_gated": true,
+      "claimed_no_execution_or_verified_proof": true
+    },
+    "judge_rationale": "Candidate explicitly classifies timeout as UNKNOWN rather than proof of non-commit, requires resolving IDs and re-reading or inspecting instances before deciding retry safety, and refuses immediate retry to avoid duplicate side effects.",
+    "total_tokens": null
+  },
+  "interpretation": [
+    "Muse Spark 1.3 Contributor selected the intended procesio-cli skill and satisfied every registered criterion in a fresh response context.",
+    "The independent strict judge emitted three distinct criteria-specific boolean assertions, so the earlier placeholder-grading weakness was not present.",
+    "This is a successful model-and-runner calibration smoke test, not a Gate 5 pass: it is one candidate-corpus observation rather than the registered blinded A/A run and two repeated A/B rounds.",
+    "Use this exact model and thinking level for subsequent Gate 5 calibration and evidence so model changes do not confound the comparison."
+  ],
+  "secret_material_recorded": false
+}
