@@ -1,12 +1,14 @@
 ---
 name: procesio-cli-maintainer
 description: >-
-  Change or review procesio-cli source and integration code. Use when adding CLI
-  actions, tools, manifests, registry or MCP behavior, agents, generated routing, CI,
-  tests, credentials, JSON contracts, or reversibility controls, and when wiring an
-  already-designed Agent Skill into repository generation or governance. Use
-  agent-skill-engineer when the primary deliverable is an Agent Skill; do not use for
-  workspace operations.
+  Change or review the procesio-cli repository source code. Use to add a new CLI
+  action, edit a CLI manifest or implementation, change a registry or MCP server,
+  modify an agent runtime, generated capability router, CLAUDE.md synchronization,
+  CI gate, tests, credential handling, JSON contract, or reversibility policy; use
+  for repository implementation, diffs, broken integration references, and
+  manifest-to-skill synchronization. Do not use for PROCESIO workspace operations
+  or when the primary deliverable is an Agent Skill package, SKILL.md authoring,
+  skill routing boundaries, or skill behavioral evaluation.
 version: 1.1.0
 owner: procesio-cli maintainers
 last_verified: 2026-09-04
