@@ -12,8 +12,9 @@ def test_launcher_is_foreground_bounded_and_resumable():
 
     assert "run-local-pi-gate5-series-unattended.py" in text
     assert "GATE5_RUN_ROOT" in text
+    assert "gate5-series-v4-overnight" in text
     assert "GATE5_MAX_HOURS:-8" in text
-    assert "GATE5_MAX_MODEL_CALLS:-560" in text
+    assert "GATE5_MAX_MODEL_CALLS:-900" in text
     assert "--confirm-max-model-calls \"$MAX_CALLS\"" in text
     assert "nohup" not in text
     assert "exec" in text
