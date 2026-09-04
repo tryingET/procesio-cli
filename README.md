@@ -82,25 +82,40 @@ The repository is designed for progressive discovery rather than memorization:
 
 1. `CLAUDE.md` contains a generated capability router.
 2. Tool and agent manifests define exact actions and typed arguments.
-3. Four bounded Agent Skills route operational, advisory, SQL, and repository-maintenance work.
+3. Five bounded Agent Skills route skill engineering, operational, advisory, SQL, and repository-maintenance work.
 4. Each skill loads detailed references only for the current workflow.
 5. Mutations cross an explicit approval boundary and must end in direct verification.
 
-### The four skills
+### The five skills
 
 | Skill | Use it for |
 |---|---|
+| `agent-skill-engineer` | Create, refactor, audit, and evaluate Agent Skills. It owns trigger boundaries, progressive disclosure, fixed-rubric juries, baselines, A/A and A/B design, expert-lens review, and real-outcome proof. |
 | `procesio-cli` | Operate or troubleshoot a real PROCESIO workspace. Its nine playbooks cover processes, debugging, forms, connectors, transport, triggers, documents, data verification, and credentials/admin. |
 | `procesio-platform-advisor` | Product fit, feasibility, architecture, sizing, pricing, comparisons, compliance evidence, deployment, RPA strategy, and automation prioritization. |
 | `sql-server-optimizer` | Evidence-driven SQL Server optimization, including PROCESIO SQL actions and safe native parameter mapping. It never adds `NOLOCK` or `READ UNCOMMITTED` as a blanket tuning rule. |
-| `procesio-cli-maintainer` | Change this repository's manifests, tools, agents, MCP surface, generated router, CI, tests, or skills without breaking the framework contracts. |
+| `procesio-cli-maintainer` | Change repository code, manifests, tools, agents, MCP, generated integration, CI, and tests. It integrates an already-designed skill without taking ownership of skill authoring. |
 
 Load a skill and then only the required resource:
 
 ```bash
+python scripts/get-skill.py agent-skill-engineer --content
 python scripts/get-skill.py procesio-cli --content
 python scripts/get-skill.py procesio-cli --resource references/process-lifecycle.md
 ```
+
+Create or audit a skill without model calls:
+
+```bash
+python skills/agent-skill-engineer/scripts/scaffold_skill.py incident-triage \
+  --root skills \
+  --description "Triage recurring incidents. Use when an incident needs a bounded diagnostic workflow."
+
+python skills/agent-skill-engineer/scripts/audit_skill.py \
+  skills/incident-triage --strict
+```
+
+The scaffolder refuses to overwrite an existing path and creates a draft fixed-rubric suite. The audit checks frontmatter, routing language, context budget, progressive resources, path confinement, common secret signatures, placeholders, and evaluation contracts deterministically.
 
 ### MCP, without shell quoting
 
@@ -219,11 +234,12 @@ The live registry is authoritative; run `python scripts/list-tools.py --json` an
 
 ```text
 skills/
+├── agent-skill-engineer/         skill design, audit, evaluation, and proof
 ├── procesio-cli/                 operational router + nine playbooks
 ├── procesio-platform-advisor/    product and solution-architecture decisions
 ├── sql-server-optimizer/         measured SQL Server optimization
-├── procesio-cli-maintainer/      repository change discipline
-└── evals/                        baselines, thresholds, gate ledger, dogfood
+├── procesio-cli-maintainer/      repository change and integration discipline
+└── evals/                        baselines, fixed rubrics, thresholds, and gate ledger
 ```
 
 ## Skill quality gates
@@ -231,6 +247,10 @@ skills/
 Skills are treated as executable behavior, not untested prose.
 
 ```bash
+# Deterministic package audit for one skill
+python skills/agent-skill-engineer/scripts/audit_skill.py \
+  skills/agent-skill-engineer --strict
+
 # Structural references, layout, and command/action validity
 uv run python scripts/validate-skills.py --strict-warnings
 
@@ -245,9 +265,11 @@ uv run python scripts/evaluate-skill-routing.py \
 uv run python scripts/check-skill-governance.py
 ```
 
+Every published per-skill suite uses ordered atomic criterion IDs and exact binary pass conditions. Jurors return only those criterion booleans; host code validates the contract and computes the aggregate result. The current deterministic routing corpus contains 52 positive, negative, overlap, and pressure cases and records 100% accuracy with zero forbidden collisions.
+
 The provider-neutral behavioral runner lives at `scripts/run-skill-behavior-evals.py`. It performs randomized, blinded candidate/baseline runs through an external fresh-context model command. `scripts/verify-skill-eval-series.py` requires two consecutive clean reports.
 
-Current status is recorded in `skills/evals/gates.json`. Gates 0–4 and Gate 6 have green cross-platform CI evidence. Gate 5 remains pending until repeated blinded model A/B runs clear the pre-registered bar, so this fork intentionally has no skill-release tag yet.
+Current status is recorded in `skills/evals/gates.json`. Gates 0–4 and Gate 6 have green cross-platform evidence. Gate 5 remains blocked: the old dynamic-jury A/A run exposed evaluator noise, and the expanded suite with the fixed-jury contract requires a fresh A/A run before old-versus-new A/B begins. This fork intentionally has no skill-release tag yet.
 
 GitHub Actions is active for this fork. The scheduled/manual workflow is `.github/workflows/skill-evals.yml`; configure `SKILL_EVAL_RUNNER` plus its provider secret before dispatching the behavioral job.
 
