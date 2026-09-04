@@ -19,7 +19,21 @@ def _case(case_id: str, expected_skill: str | None) -> dict:
         "prompt": f"Prompt for {case_id}",
         "expected_skill": expected_skill,
         "forbidden_skills": [],
-        "expected_output": f"Criteria for {case_id}",
+        "expected_output": {
+            "rubric_version": 1,
+            "criteria": [
+                {
+                    "id": "matches_expected_behavior",
+                    "description": f"Pass only when the answer matches {case_id}.",
+                    "required": True,
+                },
+                {
+                    "id": "avoids_forbidden_behavior",
+                    "description": f"Pass only when the answer avoids the forbidden {case_id} behavior.",
+                    "required": True,
+                },
+            ],
+        },
     }
 
 
@@ -46,35 +60,41 @@ def test_load_cases_uses_balanced_default_order(tmp_path):
     }
 
 
-def test_grade_case_requires_specific_strict_assertions():
+def test_grade_case_requires_exact_frozen_assertion_ids():
     case = _case("unknown-process-outcome", "procesio-cli")
+    expected_ids = CAL._criterion_ids(case)
     passing = CAL._grade_case(
         case,
         {
             "selected_skill": "procesio-cli",
             "task_success": True,
-            "grader_contract": "criteria-specific-v1",
+            "grader_contract": "fixed-jury-rubric-v2",
+            "criterion_ids": expected_ids,
             "assertion_results": {
-                "treats_timeout_as_unknown": True,
-                "reconciles_before_retry": True,
+                "matches_expected_behavior": True,
+                "avoids_forbidden_behavior": True,
             },
         },
     )
     assert passing["passed"] is True
 
-    generic = CAL._grade_case(
+    invented = CAL._grade_case(
         case,
         {
             "selected_skill": "procesio-cli",
             "task_success": False,
-            "grader_contract": "criteria-specific-v1",
-            "assertion_results": {"short_snake_case_check": True},
-            "grader_contract_violations": ["generic assertion key is forbidden"],
+            "grader_contract": "fixed-jury-rubric-v2",
+            "criterion_ids": expected_ids,
+            "assertion_results": {
+                "matches_expected_behavior": True,
+                "invented_check": True,
+            },
+            "grader_contract_violations": ["fixed IDs differ"],
         },
     )
-    assert generic["passed"] is False
-    assert "strict grader contract violation" in generic["reasons"]
-    assert "fewer than two criteria-specific assertions" in generic["reasons"]
+    assert invented["passed"] is False
+    assert "fixed rubric contract violation" in invented["reasons"]
+    assert "assertion results are not keyed by the exact ordered criterion IDs" in invented["reasons"]
 
 
 def test_run_calibration_reports_compact_balanced_summary(monkeypatch, tmp_path):
@@ -89,15 +109,14 @@ def test_run_calibration_reports_compact_balanced_summary(monkeypatch, tmp_path)
 
     def fake_invoke(*, runner, skills_root, case, timeout):
         calls.append(case["id"])
+        ids = CAL._criterion_ids(case)
         return {
             "selected_skill": case["expected_skill"],
             "task_success": True,
-            "grader_contract": "criteria-specific-v1",
-            "assertion_results": {
-                "matches_expected_behavior": True,
-                "avoids_forbidden_behavior": True,
-            },
-            "judge_rationale": "Meets both distinct criteria.",
+            "grader_contract": "fixed-jury-rubric-v2",
+            "criterion_ids": ids,
+            "assertion_results": {criterion_id: True for criterion_id in ids},
+            "judge_rationale": "Meets every frozen criterion.",
             "duration_ms": 12,
         }
 
@@ -113,6 +132,7 @@ def test_run_calibration_reports_compact_balanced_summary(monkeypatch, tmp_path)
 
     assert calls == [case["id"] for case in cases]
     assert summary["model"] == "opencode-go/muse-spark-1.3-contributor"
+    assert summary["rubric_contract"] == "fixed-jury-rubric-v2"
     assert summary["expected_model_calls"] == 10
     assert summary["passed_cases"] == 5
     assert summary["failed_cases"] == 0
@@ -121,21 +141,20 @@ def test_run_calibration_reports_compact_balanced_summary(monkeypatch, tmp_path)
     assert len(details) == 5
 
 
-def test_forbidden_skill_collision_fails_even_when_judge_passes():
+def test_forbidden_skill_collision_fails_even_when_fixed_jury_passes():
     case = {
         **_case("advice", "procesio-platform-advisor"),
         "forbidden_skills": ["procesio-cli"],
     }
+    ids = CAL._criterion_ids(case)
     grade = CAL._grade_case(
         case,
         {
             "selected_skill": "procesio-cli",
             "task_success": True,
-            "grader_contract": "criteria-specific-v1",
-            "assertion_results": {
-                "assesses_fit": True,
-                "avoids_mutation": True,
-            },
+            "grader_contract": "fixed-jury-rubric-v2",
+            "criterion_ids": ids,
+            "assertion_results": {criterion_id: True for criterion_id in ids},
         },
     )
 
