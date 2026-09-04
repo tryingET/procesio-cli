@@ -217,8 +217,10 @@ def _prepare_run(
     candidate.parent.mkdir(parents=True)
     control.parent.mkdir(parents=True)
     baseline.parent.mkdir(parents=True)
-    shutil.copytree(CURRENT_SKILLS, candidate)
-    shutil.copytree(CURRENT_SKILLS, control)
+    # Snapshot tracked commits rather than the working tree. Local pycache,
+    # scratch files, or uncommitted edits must not enter a formal comparison.
+    _export_git_subtree("HEAD", "skills", candidate)
+    shutil.copytree(candidate, control)
     _export_git_subtree(baseline_ref, "skills", baseline)
 
     candidate_fingerprint = _fingerprint(candidate)
