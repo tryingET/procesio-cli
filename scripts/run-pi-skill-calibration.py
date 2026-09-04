@@ -3,8 +3,8 @@
 
 This is deliberately cheaper than Gate 5. The default five cases cover the four
 published skills plus one expected abstention. Each case is evaluated by the
-strict Pi runner, which makes one fresh response call and one fresh judge call.
-The default calibration therefore uses ten model calls.
+fixed-rubric Pi runner, which makes one fresh response call and one fresh judge
+call. The default calibration therefore uses ten model calls.
 
 The result is provisional calibration only. It neither compares the frozen
 baseline nor satisfies the repeated blinded A/A and A/B Gate 5 contract.
@@ -34,6 +34,17 @@ DEFAULT_CASE_IDS = (
 )
 
 
+def _criterion_ids(case: dict[str, Any]) -> list[str]:
+    rubric = case.get("expected_output")
+    criteria = rubric.get("criteria") if isinstance(rubric, dict) else None
+    if not isinstance(criteria, list) or not criteria:
+        raise ValueError(f"case {case.get('id')!r} has no fixed criteria")
+    ids = [str(entry.get("id") or "") for entry in criteria if isinstance(entry, dict)]
+    if len(ids) != len(criteria) or any(not item for item in ids):
+        raise ValueError(f"case {case.get('id')!r} has an invalid fixed rubric")
+    return ids
+
+
 def _load_cases(path: Path, requested_ids: list[str] | None = None) -> list[dict[str, Any]]:
     raw = json.loads(path.read_text(encoding="utf-8"))
     cases = raw.get("cases") if isinstance(raw, dict) else raw
@@ -47,6 +58,7 @@ def _load_cases(path: Path, requested_ids: list[str] | None = None) -> list[dict
         case_id = str(row["id"])
         if case_id in by_id:
             raise ValueError(f"{path}: duplicate case id {case_id!r}")
+        _criterion_ids(row)
         by_id[case_id] = row
 
     selected_ids = requested_ids or list(DEFAULT_CASE_IDS)
@@ -64,7 +76,7 @@ def _invoke_case(
     timeout: int,
 ) -> dict[str, Any]:
     payload = {
-        "schema_version": 1,
+        "schema_version": 2,
         "skills_root": str(skills_root.resolve()),
         "task": case["prompt"],
         "expected_output": case["expected_output"],
@@ -87,13 +99,13 @@ def _invoke_case(
         result = json.loads(stdout)
     except json.JSONDecodeError as exc:
         raise RuntimeError(
-            f"strict runner returned invalid JSON for {case['id']}: {stdout[:500]}"
+            f"fixed-rubric runner returned invalid JSON for {case['id']}: {stdout[:500]}"
         ) from exc
     if not isinstance(result, dict):
-        raise RuntimeError(f"strict runner returned a non-object for {case['id']}")
+        raise RuntimeError(f"fixed-rubric runner returned a non-object for {case['id']}")
     if process.returncode and "runner_error" not in result:
         raise RuntimeError(
-            f"strict runner exited {process.returncode} for {case['id']}: {stdout[:500]}"
+            f"fixed-rubric runner exited {process.returncode} for {case['id']}: {stdout[:500]}"
         )
     result.setdefault("duration_ms", duration_ms)
     return result
@@ -103,6 +115,7 @@ def _grade_case(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
     expected_skill = case.get("expected_skill")
     selected_skill = result.get("selected_skill")
     forbidden = set(case.get("forbidden_skills") or [])
+    expected_ids = _criterion_ids(case)
     reasons: list[str] = []
 
     if "runner_error" in result:
@@ -110,24 +123,24 @@ def _grade_case(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
         code = error.get("code") if isinstance(error, dict) else "unknown"
         reasons.append(f"runner error: {code}")
     if selected_skill != expected_skill:
-        reasons.append(
-            f"selected {selected_skill!r}; expected {expected_skill!r}"
-        )
+        reasons.append(f"selected {selected_skill!r}; expected {expected_skill!r}")
     if selected_skill in forbidden:
         reasons.append(f"forbidden skill collision: {selected_skill!r}")
     if result.get("task_success") is not True:
-        reasons.append("strict judge did not report task_success=true")
-    if result.get("grader_contract") != "criteria-specific-v1":
-        reasons.append("criteria-specific-v1 grader contract is missing")
+        reasons.append("host-computed task_success is not true")
+    if result.get("grader_contract") != "fixed-jury-rubric-v2":
+        reasons.append("fixed-jury-rubric-v2 grader contract is missing")
+    if result.get("criterion_ids") != expected_ids:
+        reasons.append("returned criterion IDs do not match the frozen case rubric")
     violations = result.get("grader_contract_violations")
     if violations:
-        reasons.append("strict grader contract violation")
+        reasons.append("fixed rubric contract violation")
 
     assertions = result.get("assertion_results")
-    if not isinstance(assertions, dict) or len(assertions) < 2:
-        reasons.append("fewer than two criteria-specific assertions")
+    if not isinstance(assertions, dict) or list(assertions) != expected_ids:
+        reasons.append("assertion results are not keyed by the exact ordered criterion IDs")
     elif any(value is not True for value in assertions.values()):
-        reasons.append("one or more behavioral assertions failed")
+        reasons.append("one or more fixed behavioral criteria failed")
 
     return {
         "case_id": case["id"],
@@ -135,6 +148,7 @@ def _grade_case(case: dict[str, Any], result: dict[str, Any]) -> dict[str, Any]:
         "selected_skill": selected_skill,
         "passed": not reasons,
         "reasons": reasons,
+        "criterion_ids": expected_ids,
         "assertion_results": assertions if isinstance(assertions, dict) else {},
         "judge_rationale": result.get("judge_rationale"),
         "duration_ms": result.get("duration_ms"),
@@ -166,9 +180,10 @@ def run_calibration(
 
     failures = [grade for grade in grades if not grade["passed"]]
     summary = {
-        "schema_version": 1,
+        "schema_version": 2,
         "kind": "provisional-balanced-single-corpus-calibration",
         "gate5_evidence": False,
+        "rubric_contract": "fixed-jury-rubric-v2",
         "model": (os.environ.get("PI_EVAL_MODEL") or "").strip() or None,
         "thinking": (os.environ.get("PI_EVAL_THINKING") or "").strip() or None,
         "case_count": len(cases),
@@ -178,8 +193,8 @@ def run_calibration(
         "all_passed": not failures,
         "cases": grades,
         "next_gate_requirement": (
-            "A byte-identical A/A noise run followed by two passing blinded A/B "
-            "rounds with the frozen baseline and registered repetitions."
+            "A new byte-identical A/A run under suite v3 and fixed-jury-rubric-v2, "
+            "followed by two passing blinded A/B rounds."
         ),
     }
     return summary, details
@@ -205,7 +220,7 @@ def main(argv: list[str] | None = None) -> int:
     if not args.skills_root.is_dir():
         parser.error(f"skills root does not exist: {args.skills_root}")
     if not args.runner.is_file():
-        parser.error(f"strict runner does not exist: {args.runner}")
+        parser.error(f"fixed-rubric runner does not exist: {args.runner}")
     if args.timeout < 1:
         parser.error("--timeout must be positive")
 
