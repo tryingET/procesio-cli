@@ -219,7 +219,17 @@ def validate_skill(skill_md: Path, repo: Path,
             findings.append(_finding("missing-eval-suite", skill, "SKILL.md",
                                      f"eval_suite does not exist: {frontmatter['eval_suite']}"))
 
-    for file in sorted(path for path in root.rglob("*") if path.is_file()):
+    # Python imports performed by tests can create bytecode caches inside a
+    # skill's scripts directory. They are transient interpreter artifacts, not
+    # bundled skill resources, and must not turn test order into validation state.
+    files = (
+        path
+        for path in root.rglob("*")
+        if path.is_file()
+        and path.suffix.lower() != ".pyc"
+        and "__pycache__" not in path.relative_to(root).parts
+    )
+    for file in sorted(files):
         rel = file.relative_to(root)
         if rel.parts[0] in {"references", "scripts", "assets"} and len(rel.parts) > 2:
             findings.append(_finding("nested-resource", skill, rel,
