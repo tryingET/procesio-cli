@@ -6,7 +6,7 @@ Use this reference when initializing, staging, accepting, rejecting, inspecting,
 
 1. Purpose and non-goals
 2. Objective file
-3. Validation report
+3. Validation reports
 4. Final test report
 5. Lifecycle
 6. Exit and state semantics
@@ -19,11 +19,11 @@ The controller protects experiment integrity. It does not generate edits, call a
 It provides:
 
 - immutable baseline and best-skill snapshots;
-- path-confined package copies and fingerprints;
+- path-confined package copies and SHA-256 tree fingerprints;
 - allowlisted edit surfaces;
 - line, file, and binary edit budgets;
 - validation-report identity checks;
-- hard-constraint and non-regression gates;
+- numeric hard-constraint and non-regression gates;
 - strict better-than-current-best promotion;
 - rejected-candidate history and plateau stopping;
 - untouched final-test separation;
@@ -31,153 +31,152 @@ It provides:
 
 ## 2. Objective file
 
-The objective is immutable after `init`. Use this structure:
+The objective is immutable after `init`. Use this exact shape:
 
 ```json
 {
   "schema_version": 1,
-  "experiment_id": "incident-triage-v1",
   "primary_metric": "task_success_rate",
-  "min_primary_delta": 0.05,
-  "higher_is_better": true,
-  "max_regression_rate": 0.02,
+  "direction": "maximize",
+  "min_delta": 0.05,
   "minimum_valid_pairs": 40,
-  "hard_constraints": [
-    "no_forbidden_routing_collision",
-    "no_unapproved_mutation"
-  ],
-  "secondary_metrics": {
-    "mean_total_tokens": {
-      "direction": "lower",
-      "max_relative_regression": 0.15
-    },
-    "mean_duration_ms": {
-      "direction": "lower",
-      "max_relative_regression": 0.20
-    }
-  },
+  "plateau_limit": 3,
   "edit_budget": {
     "max_changed_files": 4,
     "max_added_lines": 80,
     "max_deleted_lines": 80,
-    "max_total_changed_lines": 120,
+    "max_total_line_changes": 120,
     "max_binary_bytes": 0
   },
   "allowed_paths": [
     "SKILL.md",
     "references/*.md",
-    "scripts/*.py"
+    "scripts/*.py",
+    "assets/*"
   ],
-  "forbidden_paths": [
-    "evals/**",
-    ".git/**"
+  "forbidden_paths": [],
+  "hard_constraints": [
+    {"metric": "collision_rate", "op": "<=", "value": 0},
+    {"metric": "safety_violations", "op": "==", "value": 0},
+    {"metric": "regression_rate", "op": "<=", "value": 0.02}
   ],
-  "plateau_limit": 3,
-  "validation_identity": {
-    "corpus_fingerprint": "sha256:...",
-    "rubric_fingerprint": "sha256:...",
-    "model_fingerprint": "provider:model:settings",
-    "harness_fingerprint": "sha256:...",
-    "pairing_fingerprint": "sha256:..."
-  },
-  "test_identity": {
-    "corpus_fingerprint": "sha256:different-from-validation",
-    "rubric_fingerprint": "sha256:...",
-    "model_fingerprint": "provider:model:settings",
-    "harness_fingerprint": "sha256:...",
-    "pairing_fingerprint": "sha256:..."
-  }
+  "secondary_metrics": [
+    {
+      "metric": "median_tokens",
+      "direction": "minimize",
+      "max_relative_regression": 0.15,
+      "max_absolute_regression": 0
+    },
+    {
+      "metric": "median_duration_ms",
+      "direction": "minimize",
+      "max_relative_regression": 0.20,
+      "max_absolute_regression": 0
+    }
+  ]
 }
 ```
 
 Rules:
 
-- `primary_metric` must appear in every baseline and candidate report.
-- A candidate must improve the current best by at least `min_primary_delta` in the configured direction.
-- `minimum_valid_pairs` applies to paired validation and final test.
-- Every named hard constraint must appear as JSON Boolean `true` in the candidate report.
-- `max_regression_rate` is computed from paired baseline-success → candidate-failure transitions.
-- Secondary limits apply only after eligibility and primary improvement pass.
-- `evals/**` and `.git/**` are always protected even if omitted.
-- All numeric values must be finite; NaN and infinity are rejected.
+- `direction` is `maximize` or `minimize`.
+- A candidate must improve the current best by at least `min_delta` in that direction.
+- `minimum_valid_pairs` applies to baseline, paired validation, and final test reports.
+- Each hard constraint names a numeric metric, comparison operator, and finite threshold.
+- Each secondary metric permits only the registered relative and absolute regression.
+- `evals/**` and `.git/**` are always protected even if omitted from `forbidden_paths`.
+- All values must be finite strict JSON; NaN and infinity are rejected.
+- Include `regression_rate` as a hard constraint when preserving baseline successes is mandatory.
 
-## 3. Validation report
+## 3. Validation reports
 
-Initialize with an immutable baseline validation report. Candidate reports use the same identity and metric schema:
+### Baseline
+
+Initialize from one frozen validation report:
 
 ```json
 {
   "schema_version": 1,
+  "report_type": "baseline",
   "split": "validation",
-  "candidate_fingerprint": "sha256:...",
-  "parent_fingerprint": "sha256:...",
-  "identity": {
-    "corpus_fingerprint": "sha256:...",
-    "rubric_fingerprint": "sha256:...",
-    "model_fingerprint": "provider:model:settings",
-    "harness_fingerprint": "sha256:...",
-    "pairing_fingerprint": "sha256:..."
-  },
+  "skill_fingerprint": "sha256-of-baseline-package",
+  "corpus_fingerprint": "sha256-of-validation-cases",
+  "rubric_fingerprint": "sha256-of-fixed-rubrics",
+  "model_fingerprint": "provider:model:settings",
+  "harness_fingerprint": "sha256-of-runner-and-tool-contract",
+  "pairing_fingerprint": "sha256-of-case-order-and-seeds",
   "valid_pairs": 40,
+  "infrastructure_failures": 0,
+  "metrics": {
+    "task_success_rate": 0.60,
+    "collision_rate": 0,
+    "safety_violations": 0,
+    "regression_rate": 0,
+    "median_tokens": 2600,
+    "median_duration_ms": 4800
+  }
+}
+```
+
+The baseline package fingerprint, evaluation identity, and metrics become immutable experiment state.
+
+### Candidate paired validation
+
+```json
+{
+  "schema_version": 1,
+  "report_type": "paired",
+  "split": "validation",
+  "candidate_fingerprint": "sha256-of-staged-candidate",
+  "parent_fingerprint": "sha256-of-current-best",
+  "corpus_fingerprint": "same-as-frozen-validation",
+  "rubric_fingerprint": "same-as-frozen-validation",
+  "model_fingerprint": "same-as-frozen-validation",
+  "harness_fingerprint": "same-as-frozen-validation",
+  "pairing_fingerprint": "same-as-frozen-validation",
+  "valid_pairs": 40,
+  "infrastructure_failures": 0,
+  "candidate_metrics": {
+    "task_success_rate": 0.775,
+    "collision_rate": 0,
+    "safety_violations": 0,
+    "regression_rate": 0.025,
+    "median_tokens": 2700,
+    "median_duration_ms": 5000
+  },
+  "parent_metrics": {
+    "task_success_rate": 0.60,
+    "collision_rate": 0,
+    "safety_violations": 0,
+    "regression_rate": 0,
+    "median_tokens": 2600,
+    "median_duration_ms": 4800
+  },
   "paired_outcomes": {
     "repairs": 8,
     "regressions": 1,
-    "preserved_successes": 25,
-    "unresolved_failures": 6
-  },
-  "metrics": {
-    "task_success_rate": 0.825,
-    "mean_total_tokens": 2900,
-    "mean_duration_ms": 5100
-  },
-  "hard_constraints": {
-    "no_forbidden_routing_collision": true,
-    "no_unapproved_mutation": true
+    "preserved_successes": 23,
+    "unresolved_failures": 8
   }
 }
 ```
 
-The four paired outcome counts must sum exactly to `valid_pairs`. The controller rejects stale parent/candidate fingerprints, wrong split, missing identity fields, non-finite metrics, missing hard constraints, insufficient pairs, excessive regressions, non-improvement, and secondary-cost violations.
+The four paired outcomes must sum exactly to `valid_pairs`. Produce task success, repair, and regression metrics from the same host-owned paired observations; do not let the candidate self-report them.
 
-The baseline report supplied to `init` uses the baseline package fingerprint as both candidate and parent fingerprint. Its metrics define the initial best score and secondary-cost reference.
+The controller rejects wrong split, stale package fingerprints, changed corpus/rubric/model/harness/pairing identity, non-finite or missing metrics, insufficient pairs, infrastructure failures, hard-constraint failure, insufficient primary gain, and secondary-cost regression.
 
 ## 4. Final test report
 
-After validation selects a candidate, run one untouched paired test against the **original baseline**, not against a validation-tuned intermediate:
+After validation selects a candidate, run one untouched paired test against the **original baseline**, not against a validation-tuned intermediate. Use the same paired report shape with:
 
-```json
-{
-  "schema_version": 1,
-  "split": "test",
-  "candidate_fingerprint": "sha256:selected-best",
-  "parent_fingerprint": "sha256:original-baseline",
-  "identity": {
-    "corpus_fingerprint": "sha256:untouched-test",
-    "rubric_fingerprint": "sha256:...",
-    "model_fingerprint": "provider:model:settings",
-    "harness_fingerprint": "sha256:...",
-    "pairing_fingerprint": "sha256:..."
-  },
-  "valid_pairs": 80,
-  "paired_outcomes": {
-    "repairs": 14,
-    "regressions": 2,
-    "preserved_successes": 51,
-    "unresolved_failures": 13
-  },
-  "metrics": {
-    "task_success_rate": 0.8125,
-    "mean_total_tokens": 2850,
-    "mean_duration_ms": 5000
-  },
-  "hard_constraints": {
-    "no_forbidden_routing_collision": true,
-    "no_unapproved_mutation": true
-  }
-}
-```
+- `split: "test"`;
+- `candidate_fingerprint` equal to the selected best;
+- `parent_fingerprint` equal to the original baseline;
+- a test `corpus_fingerprint` different from validation;
+- test-specific pairing identity;
+- candidate and baseline metrics computed on the same test cases.
 
-The test corpus fingerprint must differ from validation. `finalize` refuses an ineligible final report and never writes the output package on failure.
+`finalize` writes the selected package only when the final test passes the same hard constraints, minimum effect, and cost tolerances. It refuses an existing output path and an output path inside the optimizer workspace.
 
 ## 5. Lifecycle
 
@@ -191,7 +190,7 @@ python skills/agent-skill-engineer/scripts/optimize_skill.py init \
   --baseline-report baseline-validation.json
 ```
 
-Creates immutable `baseline/`, `best/`, objective, state, and ledger artifacts. The workspace must not already exist.
+Creates immutable `snapshots/baseline`, `snapshots/best`, objective, state, reports, candidate area, and append-only event ledger. The workspace must not already exist or overlap the source skill.
 
 ### Stage
 
@@ -202,7 +201,7 @@ python skills/agent-skill-engineer/scripts/optimize_skill.py stage \
   --hypothesis "Replace blind retry with unknown-outcome reconciliation"
 ```
 
-Copies the candidate, verifies its parent, checks the path allowlist and edit budget, and assigns `c0001`, `c0002`, and so on. A staged candidate is immutable.
+Compares against current best, enforces protected and allowed paths and edit budgets, snapshots the candidate, and assigns `c0001`, `c0002`, and so on. The staged package is fingerprinted and must remain unchanged.
 
 ### Decide
 
@@ -213,7 +212,7 @@ python skills/agent-skill-engineer/scripts/optimize_skill.py decide \
   --report c0001-validation.json
 ```
 
-Accepts only a strictly eligible improvement over the current best. Otherwise records the candidate and reasons in the rejected ledger. An accepted candidate becomes a new immutable best snapshot.
+Accepts only an eligible strict improvement. Otherwise records the rejected hypothesis, diff, checks, and reasons. An accepted candidate atomically becomes the new immutable best snapshot.
 
 ### Status
 
@@ -222,7 +221,7 @@ python skills/agent-skill-engineer/scripts/optimize_skill.py status \
   --workspace .skill-optimization/example
 ```
 
-Returns fingerprints, current score, accepted/rejected history, plateau count, and experiment state.
+Returns package and objective fingerprints, current best, accepted/rejected counts, plateau count, and complete registered objective.
 
 ### Finalize
 
@@ -230,32 +229,34 @@ Returns fingerprints, current score, accepted/rejected history, plateau count, a
 python skills/agent-skill-engineer/scripts/optimize_skill.py finalize \
   --workspace .skill-optimization/example \
   --report final-test.json \
-  --out dist/example-skill
+  --output dist/example-skill
 ```
 
-Validates untouched test evidence and writes the selected package to a new output path. It never overwrites an existing path.
+Validates untouched paired test evidence and writes the selected package to a new output path.
 
 ## 6. Exit and state semantics
 
-- Exit `0`: operation completed and returned a valid state/result.
-- Exit `2`: bounded contract failure, invalid candidate, rejected promotion, failed final test, or state conflict.
-- Exit `1`: unexpected internal failure.
+CLI exits:
+
+- `0`: command completed and returned a valid result; inspect `event` and `accepted`/`passed` for experimental outcomes.
+- `2`: bounded contract failure, invalid path/report/candidate, drift, or state conflict.
+- `1`: unexpected internal failure.
 
 State values:
 
-- `active`: candidates may be staged and decided.
-- `plateaued`: the registered consecutive-rejection limit was reached; new staging is refused until a new experiment is initialized.
-- `finalized`: final test passed and output package was emitted; mutation of the experiment is refused.
+- `optimizing`: candidates may be staged and decided.
+- `plateau`: the registered consecutive-rejection limit was reached; staging is refused.
+- `test_failed`: the selected best did not pass the untouched final test.
+- `finalized`: the final test passed and the output package was emitted.
 
-A rejected candidate is a normal experimental outcome, not an internal error. Preserve its evidence.
+A rejected candidate is a normal experimental result and remains in the ledger. Do not interpret a process exit alone as proof that a candidate was accepted.
 
 ## 7. Security and reproducibility
 
 - The controller performs no network or model calls.
-- It refuses symlinks, absolute or traversal paths, environment/cache directories, and non-finite JSON.
-- It copies package files into immutable snapshots rather than trusting mutable source paths.
-- It checks state, objective, and snapshot fingerprints before every mutation.
+- It rejects symlinks, path traversal, nested workspace ownership, environment/cache directories, and non-finite JSON.
+- It snapshots package files rather than trusting mutable source paths.
+- It verifies objective, baseline, best, parent, and candidate fingerprints before decisions.
 - It protects formal evaluation data from candidate edits.
-- It writes state and reports atomically.
-- It records hypotheses, diffs, fingerprints, metrics, and rejection reasons.
-- It cannot prove that an evaluator is unbiased or that a task distribution is representative; those remain evaluation-design responsibilities.
+- It writes JSON state atomically and logs each staged, accepted, rejected, and final-test event.
+- It cannot prove that an evaluator is unbiased, metrics came from genuine runs, or a task distribution is representative. Those remain host evaluator, evidence provenance, and review responsibilities.
