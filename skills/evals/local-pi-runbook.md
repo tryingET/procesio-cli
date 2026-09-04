@@ -24,6 +24,8 @@ Success is:
 {"ready": true, "marker_seen": true, "model": "<provider/model-id>"}
 ```
 
+The preflight passes both the selected `--model` and the same exact identifier through `--models`. This overrides stale user-level `enabledModels` patterns, including in detached/no-TTY runs, and matches the behavioral runner's model-selection behavior.
+
 A `quota_exhausted` or `model_not_available` result means no skill evaluation began. Do not change the skill corpus in response to a provider/model failure.
 
 ## 3. Pin the same model for every observation
@@ -44,7 +46,7 @@ The formal A/A suite currently has eight cases and five repetitions over two byt
 80 observations × 2 calls = 160 model calls
 ```
 
-Every completed observation is appended to `results/runs.jsonl`. A quota or rate-limit response now writes `results/partial-report.json` and exits with code `75`; this means **incomplete but resumable**, not a skill failure.
+Every completed observation is appended to `results/runs.jsonl`. A quota or rate-limit response writes `results/partial-report.json` and exits with code `75`; this means **incomplete but resumable**, not a skill failure.
 
 Start a deliberately small batch:
 
@@ -87,16 +89,31 @@ For manual operation, do not immediately retry a quota response: run the one-cal
 
 It never starts A/B and never accesses PROCESIO. It writes its latest state to `unattended-status.json` inside the run directory.
 
-Example:
+Use the checked-in detached launcher instead of composing a nested `nohup bash -lc` command:
 
 ```bash
-uv run python scripts/run-local-pi-gate5-aa-unattended.py \
-  --resume-run scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ \
-  --max-hours 5 \
-  --batch-observations 8 \
-  --initial-backoff-seconds 300 \
-  --max-backoff-seconds 1800 \
-  --confirm-max-model-calls 120
+bash scripts/start-local-pi-gate5-aa-unattended.sh \
+  scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ
+```
+
+The launcher:
+
+- uses the current shell's Pi, PATH, HOME, and local authentication;
+- does not start a login shell;
+- rejects a second live process for the same checkpoint;
+- removes stale PID state and archives the previous terminal status;
+- appends logs to `unattended.log`;
+- uses `systemd-inhibit` only when the current user session supports it;
+- defaults to five hours, batches of eight observations, and a 120-call hard cap.
+
+Optional bounded overrides:
+
+```bash
+GATE5_MAX_HOURS=3 \
+GATE5_BATCH_OBSERVATIONS=4 \
+GATE5_MAX_MODEL_CALLS=60 \
+bash scripts/start-local-pi-gate5-aa-unattended.sh \
+  scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ
 ```
 
 The call cap includes preflight attempts and an upper bound for evaluation calls. A completed A/A run stops immediately even when time or call budget remains. An A/A noise-gate failure also stops immediately for inspection; the coordinator does not roll into A/B.
