@@ -210,6 +210,9 @@ def _prepare_run(
     else:
         run_root.mkdir(parents=True)
 
+    candidate_commit = _resolve_ref("HEAD")
+    baseline_commit = _resolve_ref(baseline_ref)
+
     snapshots = run_root / "snapshots"
     candidate = snapshots / "candidate" / "skills"
     control = snapshots / "control" / "skills"
@@ -219,9 +222,9 @@ def _prepare_run(
     baseline.parent.mkdir(parents=True)
     # Snapshot tracked commits rather than the working tree. Local pycache,
     # scratch files, or uncommitted edits must not enter a formal comparison.
-    _export_git_subtree("HEAD", "skills", candidate)
+    _export_git_subtree(candidate_commit, "skills", candidate)
     shutil.copytree(candidate, control)
-    _export_git_subtree(baseline_ref, "skills", baseline)
+    _export_git_subtree(baseline_commit, "skills", baseline)
 
     candidate_fingerprint = _fingerprint(candidate)
     control_fingerprint = _fingerprint(control)
@@ -250,8 +253,6 @@ def _prepare_run(
         )
 
     runtime_hashes = _copy_runtime(run_root)
-    candidate_commit = _resolve_ref("HEAD")
-    baseline_commit = _resolve_ref(baseline_ref)
     per_phase = len(cases) * repetitions * 2
     phase_specs = _phase_specs()
 
