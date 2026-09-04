@@ -3,11 +3,11 @@
   "as_of": "2026-09-04",
   "release_eligible": false,
   "release_blockers": [
-    "Gate 5 has not yet produced two fresh-context, blinded, repeated model A/B reports above the registered bar."
+    "Gate 5 A/A is checkpointed at 20 of 80 observations; the noise-floor verdict and two passing blinded A/B reports are still required."
   ],
   "last_green_ci": {
-    "run_id": 33852503160,
-    "head_sha": "9701707d39c11dafae517664eb8bf76cdb207f22",
+    "run_id": 33860926817,
+    "head_sha": "08c7ea6be6ed882ccf5407ee9b2639f4f674cbf4",
     "matrix": [
       "ubuntu-latest / Python 3.11",
       "ubuntu-latest / Python 3.12",
@@ -72,6 +72,7 @@
         "scripts/run-skill-behavior-evals.py",
         "scripts/pi-skill-eval-runner.py",
         "scripts/pi-skill-eval-runner-strict.py",
+        "scripts/run-local-pi-gate5-aa.py",
         "skills/evals/runner-contract.md",
         "skills/evals/gate5-thresholds.json",
         "skills/evals/gate5-dogfood.json",
@@ -80,7 +81,9 @@
         "skills/evals/local-pi-smoke-deepseek-v4-pro.json",
         "skills/evals/local-pi-smoke-muse-spark-1.3-contributor.json",
         "skills/evals/local-pi-balanced-calibration-muse-spark-1.3-before-readonly-fix.json",
-        "skills/evals/local-pi-calibration-mcp-resource-v2-success.json"
+        "skills/evals/local-pi-calibration-mcp-resource-v2-success.json",
+        "skills/evals/local-pi-aa-muse-spark-rate-limit.json",
+        "skills/evals/local-pi-aa-muse-spark-checkpoint-20.json"
       ]
     },
     {
