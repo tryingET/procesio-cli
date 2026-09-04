@@ -105,22 +105,31 @@ fi
 
 PID=$!
 echo "$PID" > "$PID_FILE"
-sleep 1
 
-if kill -0 "$PID" 2>/dev/null; then
-  echo "Started unattended Gate 5 A/A as PID $PID"
-  echo "Run: $RUN_DIR"
-  echo "Log: $LOG"
-  echo "Status: $STATUS"
-  echo "Follow: tail -f '$LOG'"
-  exit 0
-fi
+# Give Pi's detached preflight enough time to expose immediate model-selection,
+# auth, executable, or metadata errors. A quota-limited coordinator remains
+# alive because it backs off internally.
+for ((ATTEMPT = 1; ATTEMPT <= 10; ATTEMPT++)); do
+  sleep 1
+  if ! kill -0 "$PID" 2>/dev/null; then
+    rm -f "$PID_FILE"
+    if [[ -f "$STATUS" ]] && grep -q '"status": "complete"' "$STATUS"; then
+      echo "Gate 5 A/A completed during startup."
+      cat "$STATUS"
+      exit 0
+    fi
+    echo "ERROR: unattended Gate 5 A/A exited during startup." >&2
+    if [[ -f "$STATUS" ]]; then
+      cat "$STATUS" >&2
+    else
+      tail -n 40 "$LOG" >&2 || true
+    fi
+    exit 2
+  fi
+done
 
-rm -f "$PID_FILE"
-echo "ERROR: unattended Gate 5 A/A exited during startup." >&2
-if [[ -f "$STATUS" ]]; then
-  cat "$STATUS" >&2
-else
-  tail -n 40 "$LOG" >&2 || true
-fi
-exit 2
+echo "Started unattended Gate 5 A/A as PID $PID"
+echo "Run: $RUN_DIR"
+echo "Log: $LOG"
+echo "Status: $STATUS"
+echo "Follow: tail -f '$LOG'"
