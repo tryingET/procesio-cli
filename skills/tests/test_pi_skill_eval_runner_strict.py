@@ -50,3 +50,12 @@ def test_strict_judge_prompt_requires_multiple_specific_checks():
     assert "no_blind_retry" in prompt
     assert "short_snake_case_check" in prompt
     assert "Do not use placeholder" in prompt
+
+
+def test_strict_judge_respects_read_only_evaluation_boundary():
+    prompt = RUNNER._STRICT_JUDGE_SYSTEM
+
+    assert "read-only evaluation context" in prompt
+    assert "not whether external or" in prompt
+    assert "execution remains unverified" in prompt
+    assert "Penalize" in prompt and "fabricated claims" in prompt
