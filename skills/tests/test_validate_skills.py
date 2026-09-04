@@ -43,6 +43,21 @@ def test_nested_scripts_are_rejected(tmp_path):
     assert {"nested-resource", "script-in-references"} <= codes
 
 
+def test_python_bytecode_caches_are_ignored(tmp_path):
+    _skill(tmp_path)
+    _write(
+        tmp_path
+        / "skills"
+        / "demo"
+        / "scripts"
+        / "__pycache__"
+        / "helper.cpython-312.pyc",
+        "transient bytecode fixture",
+    )
+
+    assert module.validate_repo(tmp_path / "skills", tmp_path) == []
+
+
 def test_command_examples_must_name_real_actions(tmp_path):
     _write(tmp_path / "tools" / "widget" / "tool.yaml", """
 name: widget
