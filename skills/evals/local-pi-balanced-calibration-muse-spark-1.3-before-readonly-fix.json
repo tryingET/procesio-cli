@@ -1,0 +1,49 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-09-04",
+  "source": "operator-run local Pi balanced calibration",
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "thinking": "low",
+  "kind": "provisional-balanced-single-corpus-calibration",
+  "gate5_evidence": false,
+  "summary": {
+    "case_count": 5,
+    "expected_model_calls": 10,
+    "passed_cases": 4,
+    "failed_cases": 1,
+    "all_passed": false
+  },
+  "passing_cases": [
+    "unknown-process-outcome",
+    "capacity-without-runtime",
+    "blanket-nolock",
+    "unrelated-postgres"
+  ],
+  "failed_case": {
+    "id": "mcp-resource-change",
+    "expected_skill": "procesio-cli-maintainer",
+    "selected_skill": "procesio-cli-maintainer",
+    "candidate_behavior": [
+      "selected the correct maintainer skill",
+      "proposed compatibility and confinement tests",
+      "proposed preserving get_skill",
+      "proposed bounded resource retrieval",
+      "proposed traversal verification",
+      "truthfully stated that no code or tests were executed"
+    ],
+    "judge_behavior": "Marked every criterion false because the candidate had not executed the change.",
+    "diagnosis": "False negative caused by a contradictory evaluation contract: the agent sandbox forbade edits and test execution while the user prompt asked it to change the repository.",
+    "corrective_actions": [
+      "Rephrase the case as a read-only test-first implementation and verification plan.",
+      "Tell the strict judge not to require completed mutations in a deliberately read-only evaluation.",
+      "Penalize fabricated execution claims and reward truthful unverified status.",
+      "Add regression tests for the case wording and judge boundary."
+    ]
+  },
+  "interpretation": [
+    "The four passing cases provide useful provisional cross-skill calibration evidence.",
+    "The failed case does not justify editing procesio-cli-maintainer because routing and the requested design elements were correct.",
+    "This remains candidate-only calibration, not the registered A/A plus repeated blinded A/B Gate 5 evidence."
+  ],
+  "secret_material_recorded": false
+}
