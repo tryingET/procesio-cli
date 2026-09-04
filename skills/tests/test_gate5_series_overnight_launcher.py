@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import subprocess
 from pathlib import Path
 
 
@@ -21,6 +22,22 @@ def test_uv_entrypoint_is_pep723_and_delegates_to_one_canonical_runner():
     assert CANONICAL_RUNNER.name in text
     assert "runpy.run_path" in text
     assert "Downloads" not in text
+
+
+def test_uv_entrypoint_reaches_canonical_help_without_project_python():
+    process = subprocess.run(
+        ["uv", "run", "--script", str(UV_ENTRYPOINT), "--help"],
+        cwd=ROOT,
+        text=True,
+        capture_output=True,
+        timeout=60,
+        check=False,
+    )
+
+    assert process.returncode == 0, process.stderr
+    assert "--run-root" in process.stdout
+    assert "--confirm-max-model-calls" in process.stdout
+    assert "--max-hours" in process.stdout
 
 
 def test_launcher_is_foreground_bounded_resumable_and_uses_uv_script_mode():
