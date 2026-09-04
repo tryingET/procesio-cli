@@ -1,0 +1,34 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-09-04",
+  "source": "operator-run local Pi formal A/A resume batch",
+  "kind": "gate5-aa-checkpoint",
+  "gate5_evidence": false,
+  "suite_version": 2,
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "thinking": "medium",
+  "experiment": {
+    "run_root": "scratchpad/gate5-aa-v2-20260904T092830Z",
+    "total_observations": 80,
+    "completed_before_batch": 12,
+    "new_observations_completed": 8,
+    "completed_observations": 20,
+    "remaining_observations": 60,
+    "completed_model_calls_minimum": 40,
+    "batch_model_call_budget": 16
+  },
+  "result": {
+    "status": "paused",
+    "resumable": true,
+    "runner_error": null,
+    "partial_report_created": true,
+    "checkpoint_preserved": true
+  },
+  "interpretation": [
+    "The resume path successfully adopted the original twelve observations and appended eight new observations without truncation.",
+    "No quota or runner error occurred in this bounded batch.",
+    "This checkpoint is not an A/A verdict because sixty observations remain.",
+    "The next valid action is another bounded resume batch using the same model, medium thinking level, suite version, seed, and run directory."
+  ],
+  "secret_material_recorded": false
+}
