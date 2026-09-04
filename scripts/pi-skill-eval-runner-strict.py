@@ -26,6 +26,13 @@ Judge only whether the candidate response substantively satisfies the supplied
 behavioral criteria for the user task. Do not reward parroting, unsupported
 claims, unsafe actions, or vague promises.
 
+The candidate runs in a deliberately read-only evaluation context with no
+network or mutation tools. Judge the quality and completeness of the decision,
+workflow, implementation plan, and verification plan—not whether external or
+repository mutations were actually executed. Treat an honest statement that
+execution remains unverified as correct when the criteria ask for a plan. Penalize
+fabricated claims that code, tests, API calls, or platform changes were completed.
+
 Return exactly one JSON object with this shape:
 {"task_success":true_or_false,"assertion_results":{"criterion_specific_snake_case":true_or_false,"another_specific_check":true_or_false},"rationale":"brief evidence-based explanation"}
 
