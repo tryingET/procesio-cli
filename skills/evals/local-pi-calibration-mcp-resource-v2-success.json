@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "suite_version": 2,
+  "observed_on": "2026-09-04",
+  "source": "operator-run local Pi corrected single-case calibration",
+  "kind": "provisional-single-corpus-calibration",
+  "gate5_evidence": false,
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "thinking": "low",
+  "case": {
+    "id": "mcp-resource-change",
+    "expected_skill": "procesio-cli-maintainer",
+    "selected_skill": "procesio-cli-maintainer",
+    "passed": true,
+    "assertion_results": {
+      "starts_with_compatibility_and_path_confinement_tests": true,
+      "preserves_existing_get_skill_behavior": true,
+      "adds_optional_bounded_single_resource_retrieval": true,
+      "rejects_traversal_and_symlink_escape": true,
+      "states_code_tests_unexecuted_readonly": true
+    },
+    "judge_rationale": "Candidate provides a test-first RED baseline with old-call compatibility and new-call safety-gate cases, keeps the tool name and required arguments unchanged, proposes optional bounded retrieval of one resource, explicitly rejects absolute paths, traversal and symlink escape, and truthfully states that no files or tests were executed in the read-only evaluation.",
+    "duration_ms": 16541,
+    "runner_error": null
+  },
+  "interpretation": [
+    "The corrected read-only contract removed the earlier false negative without changing the procesio-cli-maintainer skill.",
+    "Across the initial five-case calibration plus this corrected rerun, all four published skills and the expected PostgreSQL abstention produced a passing observation.",
+    "The two observations are provisional calibration, not one formal balanced run and not Gate 5 evidence.",
+    "Formal Gate 5 still requires a byte-identical A/A noise run followed by two passing blinded A/B rounds at the registered repetition count."
+  ],
+  "secret_material_recorded": false
+}
