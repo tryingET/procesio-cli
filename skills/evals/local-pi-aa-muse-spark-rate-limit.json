@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "observed_on": "2026-09-04",
+  "source": "operator-run local Pi formal A/A attempt",
+  "kind": "gate5-aa-interruption",
+  "gate5_evidence": false,
+  "suite_version": 2,
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "thinking": "medium",
+  "experiment": {
+    "total_observations": 80,
+    "planned_model_calls": 160,
+    "completed_observations": 12,
+    "remaining_observations": 68,
+    "completed_model_calls_minimum": 24,
+    "run_root": "scratchpad/gate5-aa-v2-20260904T092830Z"
+  },
+  "interruption": {
+    "code": "model_quota_exhausted",
+    "message": "The selected Pi model/provider rejected the next evaluation observation because its request quota was exhausted.",
+    "complete_report_created": false
+  },
+  "diagnosis": [
+    "This is a provider quota interruption, not a skill failure and not an A/A verdict.",
+    "Twelve completed JSONL observations remain usable in the local run directory.",
+    "The previous harness aborted with a traceback and did not write a partial report or support resumption."
+  ],
+  "changes": [
+    "The paired harness now checkpoints every observation and resumes by case, repetition, and blinded corpus label.",
+    "Structured runner errors now create partial-report.json and interruption.json instead of discarding the experiment.",
+    "The local A/A wrapper supports --resume-run and bounded --max-new-observations batches.",
+    "A one-time --confirm-existing-observations guard safely adopts this pre-metadata checkpoint.",
+    "Run metadata locks model, provider, thinking level, suite version, seed, corpus fingerprint, thresholds, and strict-runner hash.",
+    "Regression tests cover pause/resume, quota interruption, no checkpoint truncation, setting mismatch rejection, and batch call budgets."
+  ],
+  "next_valid_action": "Use the same Muse Spark model and medium thinking level, confirm the 12 existing observations once, and resume the same run directory in a small explicitly budgeted batch after a successful one-call preflight.",
+  "secret_material_recorded": false
+}
