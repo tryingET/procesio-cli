@@ -4,9 +4,9 @@
 The base runner provides corpus isolation, pinned-model execution, and a fresh
 independent judge. This wrapper makes the grading rubric data rather than a
 judge-generated interpretation: every juror receives the same ordered criterion
-IDs and pass conditions, must return exactly those IDs, and cannot decide the
-aggregate task-success value. The host computes task_success from the required
-criterion booleans.
+IDs and pass conditions, must return exactly those IDs in that order, and cannot
+decide the aggregate task-success value. The host computes task_success from the
+required criterion booleans.
 """
 from __future__ import annotations
 
@@ -45,7 +45,8 @@ Evaluate every supplied criterion independently. Return exactly one JSON object:
 {"assertion_results":{"the_exact_supplied_id":true_or_false},"rationale":"brief evidence-based explanation"}
 
 Contract:
-- Copy every supplied criterion ID into assertion_results exactly once.
+- Copy every supplied criterion ID into assertion_results exactly once and in
+  the same order as the supplied criteria array.
 - Preserve spelling and case. Do not invent, rename, merge, split, omit, or add IDs.
 - Every assertion value must be a JSON boolean.
 - Apply each description as a binary pass condition. When evidence is absent or
@@ -138,13 +139,14 @@ def validate_assertion_contract(
     assertions: Any,
     expected_ids: list[str] | tuple[str, ...],
 ) -> list[str]:
-    """Require one boolean result for every and only supplied criterion ID."""
+    """Require one ordered Boolean result for every supplied criterion ID."""
     if not isinstance(assertions, dict):
         return ["assertion_results must be an object"]
 
     expected = list(expected_ids)
     expected_set = set(expected)
-    actual_set = {str(key) for key in assertions}
+    actual = [str(key) for key in assertions]
+    actual_set = set(actual)
     violations: list[str] = []
 
     missing = [criterion_id for criterion_id in expected if criterion_id not in actual_set]
@@ -153,6 +155,11 @@ def validate_assertion_contract(
         violations.append("missing assertion id(s): " + ", ".join(missing))
     if unexpected:
         violations.append("unexpected assertion id(s): " + ", ".join(unexpected))
+    if not missing and not unexpected and actual != expected:
+        violations.append(
+            "assertion id order differs from the supplied rubric: "
+            + ", ".join(actual)
+        )
 
     for criterion_id in expected:
         if criterion_id in assertions and not isinstance(assertions[criterion_id], bool):
