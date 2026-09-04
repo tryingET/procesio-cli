@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Safely scaffold a portable or governed Agent Skill package.
+"""Safely scaffold an evidence-ready Agent Skill package.
 
-The command never overwrites an existing skill directory. It writes a draft
-SKILL.md plus a fixed-rubric evaluation skeleton containing positive, negative,
-overlap, and pressure cases. No model, network, or secret-store access occurs.
+The command never overwrites an existing skill directory. It creates a draft
+SKILL.md and fixed-rubric evaluation skeleton with explicit causal, boundary,
+safety, progressive-disclosure, and release-proof placeholders. It makes no
+model, network, repository, or secret-store calls.
 """
 from __future__ import annotations
 
 import argparse
 import json
 import re
-import sys
+import shutil
 from datetime import date
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,7 @@ from typing import Any
 NAME_RE = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 MAX_NAME = 64
 MAX_DESCRIPTION = 1024
+RESOURCE_CATEGORIES = ("references", "scripts", "assets")
 
 
 def _yaml_string(value: str) -> str:
@@ -38,9 +40,10 @@ def _validate_name(name: str) -> None:
 
 
 def _validate_description(description: str) -> None:
-    if not description.strip():
+    normalized = " ".join(description.split())
+    if not normalized:
         raise ValueError("description must not be empty")
-    if len(" ".join(description.split())) > MAX_DESCRIPTION:
+    if len(normalized) > MAX_DESCRIPTION:
         raise ValueError(f"description exceeds {MAX_DESCRIPTION} characters")
 
 
@@ -58,11 +61,7 @@ def _target(root: Path, name: str) -> tuple[Path, Path]:
 
 def _frontmatter(args: argparse.Namespace) -> str:
     description = " ".join(args.description.split())
-    lines = [
-        "---",
-        f"name: {args.name}",
-        f"description: {_yaml_string(description)}",
-    ]
+    lines = ["---", f"name: {args.name}", f"description: {_yaml_string(description)}"]
     if args.compatibility:
         lines.append(f"compatibility: {_yaml_string(args.compatibility.strip())}")
     if args.license:
@@ -94,45 +93,103 @@ def _frontmatter(args: argparse.Namespace) -> str:
         lines += ["routing:", "  triggers:"]
         lines.extend(f"    - {_yaml_string(item.strip())}" for item in args.trigger)
 
-    lines += ["metadata:", "  status: draft", "---"]
+    lines += [
+        "metadata:",
+        "  status: draft",
+        f"  evidence-tier: {_yaml_string(str(args.evidence_tier))}",
+        "---",
+    ]
     return "\n".join(lines)
+
+
+def _list_or_placeholder(values: list[str], placeholder: str) -> str:
+    if values:
+        return "\n".join(f"- {item.strip()}" for item in values)
+    return f"- {{{{{placeholder}}}}}"
 
 
 def _skill_body(args: argparse.Namespace) -> str:
     title = args.title.strip() if args.title else _title(args.name)
-    first_trigger = args.trigger[0] if args.trigger else "{{REPLACE_WITH_CONCRETE_TRIGGER}}"
+    triggers = _list_or_placeholder(args.trigger, "REPLACE_WITH_CONCRETE_TRIGGER")
+    non_triggers = _list_or_placeholder(args.non_trigger, "REPLACE_WITH_NEAREST_NON_TRIGGER_AND_OWNER")
+    clients = _list_or_placeholder(args.target_client, "REPLACE_WITH_TARGET_CLIENT_AND_VERSION")
     return f"""# {title}
 
 ## Outcome
 
 {{{{REPLACE_WITH_OBSERVABLE_USER_OUTCOME}}}}
 
+State the behavior this package changes relative to no skill or the immutable prior skill.
+
+## Causal contract
+
+- Baseline behavior: {{{{REPLACE_WITH_OBSERVED_BASELINE_BEHAVIOR}}}}
+- Intervention hypothesis: {{{{REPLACE_WITH_SPECIFIC_CAUSAL_INSTRUCTION_OR_RESOURCE}}}}
+- Protected successes: {{{{REPLACE_WITH_BASELINE_SUCCESSES_THAT_MUST_NOT_REGRESS}}}}
+- Evidence tier: {args.evidence_tier}
+- Direct outcome or preference proof: {{{{REPLACE_WITH_STRONGEST_AVAILABLE_PROOF}}}}
+
 ## Boundary
 
-- Use this skill when: {first_trigger}
-- Do not use this skill when: {{{{REPLACE_WITH_NEAREST_NON_TRIGGER_AND_OWNER}}}}
+Use this skill when:
+
+{triggers}
+
+Do not use this skill when:
+
+{non_triggers}
+
+Target clients and environments:
+
+{clients}
+
+## Evidence and uncertainty
+
+- Authoritative sources or artifacts: {{{{REPLACE_WITH_SOURCE_OWNERS_AND_VERSIONS}}}}
+- Stable invariants: {{{{REPLACE_WITH_PROVEN_INVARIANTS}}}}
+- Heuristics and scope: {{{{REPLACE_WITH_CALIBRATED_HEURISTICS}}}}
+- Unknowns and escalation owner: {{{{REPLACE_WITH_STOP_OR_HANDOFF_CONDITIONS}}}}
 
 ## Non-negotiables
 
 - {{{{REPLACE_WITH_INVARIANT_THAT_PREVENTS_THE_COSTLIEST_FAILURE}}}}
-- {{{{REPLACE_WITH_PERMISSION_RETRY_OR_SAFETY_RULE_IF_APPLICABLE}}}}
+- {{{{REPLACE_WITH_PERMISSION_RETRY_PRIVACY_OR_SAFETY_RULE}}}}
+- Do not claim completion from a proxy when direct observation is available.
 
 ## Workflow
 
-1. {{{{REPLACE_WITH_PRECONDITION_OR_GROUNDING_STEP}}}}
-2. {{{{REPLACE_WITH_CORE_DECISION_OR_ACTION}}}}
-3. {{{{REPLACE_WITH_DIRECT_VERIFICATION_STEP}}}}
-4. Report the result, evidence, and any proof that remains unavailable.
+1. {{{{REPLACE_WITH_GROUNDING_AND_PRECONDITION_STEP}}}}
+2. {{{{REPLACE_WITH_CORE_CLASSIFICATION_OR_DECISION}}}}
+3. {{{{REPLACE_WITH_ACTION_OR_HANDOFF}}}}
+4. {{{{REPLACE_WITH_DIRECT_VERIFICATION_AND_RECOVERY}}}}
+5. Report the result, evidence, uncertainty, and proof that remains unavailable.
 
 ## Resources
 
-Add only resources that execution needs. Link each resource here and state when to read or run it.
+Create only resources that alter execution. Link each one here with an explicit load or run condition.
+
+- `references/`: stable or conditional knowledge and source-owned detail.
+- `scripts/`: deterministic, repeated, fragile, or safety-critical operations.
+- `assets/`: output templates or media, never hidden instructions.
+
+Delete empty resource directories before publication when the target repository prefers a minimal package.
 
 ## Verification
 
-{{{{REPLACE_WITH_THE_REAL_ARTIFACT_STATE_OR_OUTPUT_THAT_PROVES_SUCCESS}}}}
+{{{{REPLACE_WITH_REAL_ARTIFACT_STATE_OUTPUT_OR_BLINDED_PREFERENCE_THAT_PROVES_SUCCESS}}}}
 
-Do not claim completion from a proxy when direct observation is available.
+Required evidence:
+
+- structural and security validation;
+- positive, negative, overlap, and pressure routing behavior;
+- paired baseline/candidate task evidence with fixed atomic criteria;
+- repairs and regressions on the same cases;
+- held-out validation and untouched final test appropriate to evidence tier {args.evidence_tier};
+- controlled field proof for operational or high-consequence workflows.
+
+## Release conditions
+
+Freeze cases, split membership, rubric IDs, objective hierarchy, minimum effect, edit budget, and stopping rules before formal evaluation. Mark this package draft until every applicable hard constraint passes. Preserve the baseline, reports, rejected hypotheses, residual risks, and rollback or retirement path.
 """
 
 
@@ -140,13 +197,22 @@ def _criterion(identifier: str, description: str) -> dict[str, Any]:
     return {"id": identifier, "description": description, "required": True}
 
 
-def _eval_skeleton(name: str) -> dict[str, Any]:
+def _eval_skeleton(name: str, evidence_tier: int) -> dict[str, Any]:
     return {
         "schema_version": 2,
         "skill_name": name,
         "suite_version": 1,
         "rubric_contract": "fixed-jury-rubric-v2",
         "status": "draft",
+        "evidence_tier": evidence_tier,
+        "experiment_contract": {
+            "baseline": "no-skill for a new capability; immutable prior package for an existing skill",
+            "train": "failure discovery and hypothesis generation only",
+            "validation": "strict promotion of bounded candidates",
+            "test": "untouched until final candidate selection",
+            "field": "direct user-path proof when operational or consequential",
+            "report_repairs_and_regressions": True,
+        },
         "cases": [
             {
                 "id": "core-success",
@@ -164,6 +230,10 @@ def _eval_skeleton(name: str) -> dict[str, Any]:
                         _criterion(
                             "provides_direct_verification",
                             "Pass only when {{REPLACE_WITH_THE_DIRECT_PROOF_REQUIREMENT}}.",
+                        ),
+                        _criterion(
+                            "preserves_a_baseline_success",
+                            "Pass only when {{REPLACE_WITH_ONE_SUCCESS_THAT_MUST_NOT_REGRESS}}.",
                         ),
                     ],
                 },
@@ -203,7 +273,7 @@ def _eval_skeleton(name: str) -> dict[str, Any]:
                         ),
                         _criterion(
                             "preserves_any_explicit_handoff",
-                            "Pass only when {{REPLACE_WITH_HANDOFF_OR_RETURN_CONDITION}}.",
+                            "Pass only when {{REPLACE_WITH_HANDOFF_AND_RETURN_CONDITION}}.",
                         ),
                     ],
                 },
@@ -223,7 +293,7 @@ def _eval_skeleton(name: str) -> dict[str, Any]:
                         ),
                         _criterion(
                             "uses_the_safe_verifiable_path",
-                            "Pass only when {{REPLACE_WITH_SAFE_SEQUENCE_AND_PROOF}}.",
+                            "Pass only when {{REPLACE_WITH_SAFE_SEQUENCE_AND_DIRECT_PROOF}}.",
                         ),
                     ],
                 },
@@ -238,7 +308,7 @@ def scaffold(args: argparse.Namespace) -> dict[str, Any]:
     created: list[str] = []
     try:
         (target / "evals").mkdir(parents=True)
-        for category in ("references", "scripts", "assets"):
+        for category in RESOURCE_CATEGORIES:
             (target / category).mkdir()
 
         skill_md = target / "SKILL.md"
@@ -251,32 +321,31 @@ def scaffold(args: argparse.Namespace) -> dict[str, Any]:
 
         evals = target / "evals" / "evals.json"
         evals.write_text(
-            json.dumps(_eval_skeleton(args.name), indent=2, ensure_ascii=False) + "\n",
+            json.dumps(_eval_skeleton(args.name, args.evidence_tier), indent=2, ensure_ascii=False) + "\n",
             encoding="utf-8",
             newline="\n",
         )
         created.append(str(evals))
     except Exception:
-        # The target did not exist before this command, so removing only this
-        # newly created tree is safe and prevents half-scaffolded packages.
-        import shutil
-
         shutil.rmtree(target, ignore_errors=True)
         raise
 
     return {
-        "schema_version": 1,
+        "schema_version": 2,
         "created": True,
         "status": "draft",
         "profile": args.profile,
+        "evidence_tier": args.evidence_tier,
         "skill_name": args.name,
         "skill_root": str(target),
         "created_files": created,
         "next_actions": [
-            "replace every {{REPLACE...}} placeholder with grounded content",
-            "run audit_skill.py with --strict",
-            "run the host repository's native validators and routing evaluation",
-            "compare against a no-skill or immutable old-skill baseline before claiming improvement",
+            "replace every {{REPLACE...}} placeholder from real evidence",
+            "remove unused resource directories or add only directly linked resources",
+            "run audit_skill.py with --strict and the host repository validators",
+            "freeze train, validation, test, field, rubrics, objective, edit budget, and stopping rules",
+            "compare against no skill or the immutable prior package before claiming improvement",
+            "record repairs, regressions, costs, uncertainty, and direct field proof appropriate to the evidence tier",
         ],
     }
 
@@ -300,6 +369,9 @@ def _parser() -> argparse.ArgumentParser:
         default="timestamped",
     )
     parser.add_argument("--trigger", action="append", default=[])
+    parser.add_argument("--non-trigger", action="append", default=[])
+    parser.add_argument("--target-client", action="append", default=[])
+    parser.add_argument("--evidence-tier", type=int, choices=(0, 1, 2, 3), default=2)
     return parser
 
 
@@ -308,15 +380,10 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     try:
         result = scaffold(args)
-    except Exception as exc:  # noqa: BLE001 - one bounded machine-readable failure
+    except Exception as exc:  # noqa: BLE001 - bounded machine-readable failure
         print(
             json.dumps(
-                {
-                    "error": {
-                        "code": "skill_scaffold_failed",
-                        "message": str(exc),
-                    }
-                },
+                {"error": {"code": "skill_scaffold_failed", "message": str(exc)}},
                 ensure_ascii=False,
                 separators=(",", ":"),
             )
