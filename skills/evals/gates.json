@@ -3,7 +3,8 @@
   "as_of": "2026-09-04",
   "release_eligible": false,
   "release_blockers": [
-    "Gate 5 A/A is checkpointed at 20 of 80 observations; the noise-floor verdict and two passing blinded A/B reports are still required."
+    "Gate 5 A/A completed but failed: byte-identical arms differed by 7.5 percentage points in judged task success, above the registered 5-point limit. A/B is blocked until the failed rows are diagnosed and a versioned correction passes a new A/A run.",
+    "After A/A passes, two fresh-context blinded A/B reports above the registered bar are still required."
   ],
   "last_green_ci": {
     "run_id": 33860926817,
@@ -67,12 +68,13 @@
     {
       "id": 5,
       "name": "behavioral-retuning",
-      "status": "pending-external-run",
+      "status": "blocked",
       "evidence": [
         "scripts/run-skill-behavior-evals.py",
         "scripts/pi-skill-eval-runner.py",
         "scripts/pi-skill-eval-runner-strict.py",
         "scripts/run-local-pi-gate5-aa.py",
+        "scripts/analyze-gate5-aa.py",
         "skills/evals/runner-contract.md",
         "skills/evals/gate5-thresholds.json",
         "skills/evals/gate5-dogfood.json",
@@ -83,7 +85,8 @@
         "skills/evals/local-pi-balanced-calibration-muse-spark-1.3-before-readonly-fix.json",
         "skills/evals/local-pi-calibration-mcp-resource-v2-success.json",
         "skills/evals/local-pi-aa-muse-spark-rate-limit.json",
-        "skills/evals/local-pi-aa-muse-spark-checkpoint-20.json"
+        "skills/evals/local-pi-aa-muse-spark-checkpoint-20.json",
+        "skills/evals/local-pi-aa-muse-spark-medium-v2-noise-failed.json"
       ]
     },
     {
