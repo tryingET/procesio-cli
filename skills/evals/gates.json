@@ -71,10 +71,14 @@
       "evidence": [
         "scripts/run-skill-behavior-evals.py",
         "scripts/pi-skill-eval-runner.py",
+        "scripts/pi-skill-eval-runner-strict.py",
         "skills/evals/runner-contract.md",
         "skills/evals/gate5-thresholds.json",
         "skills/evals/gate5-dogfood.json",
-        "skills/evals/field-observations.json"
+        "skills/evals/field-observations.json",
+        "skills/evals/local-pi-preflight.json",
+        "skills/evals/local-pi-smoke-deepseek-v4-pro.json",
+        "skills/evals/local-pi-smoke-muse-spark-1.3-contributor.json"
       ]
     },
     {
