@@ -30,8 +30,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def child_command(args: argparse.Namespace, run_root: Path) -> list[str]:
+    uv = shutil.which("uv") or "uv"
     argv = [
-        sys.executable,
+        uv,
+        "run",
+        "--script",
         str(Path(__file__).resolve()),
         "--repo",
         str(args.repo.expanduser().resolve()),
