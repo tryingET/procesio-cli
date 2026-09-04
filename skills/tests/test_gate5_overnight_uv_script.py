@@ -38,13 +38,13 @@ def test_entrypoint_is_a_self_contained_uv_script():
 def test_defaults_target_the_checked_out_repo_and_bounded_overnight_run():
     runner = _load_entrypoint()
     args = runner.build_parser().parse_args(
-        ["--confirm-max-model-calls", "520"]
+        ["--confirm-max-model-calls", "760"]
     )
 
     assert args.repo == ROOT
     assert args.max_hours == 8
     assert args.batch_observations == 8
-    assert args.confirm_max_model_calls == 520
+    assert args.confirm_max_model_calls == 760
     assert args.model == "opencode-go/muse-spark-1.3-contributor"
     assert args.thinking == "medium"
 
@@ -57,12 +57,15 @@ def test_fixed_phase_order_and_frozen_two_skill_baseline():
         sys.path.pop(0)
 
     assert common.BASELINE_REF == "da12de643c8a2355d019f40515766abf80a819df"
+    assert common.SUITE_VERSION == 4
+    assert common.RUBRIC_CONTRACT == "fixed-jury-rubric-v2"
     assert common.PHASES == (
         ("aa", "aa", 20260902),
         ("ab-round-1", "ab", 20260903),
         ("ab-round-2", "ab", 20260904),
     )
     assert common.EXPECTED_CANDIDATE == {
+        "agent-skill-engineer",
         "procesio-cli",
         "procesio-cli-maintainer",
         "procesio-platform-advisor",
