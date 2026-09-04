@@ -41,7 +41,7 @@ def test_unmatched_model_pattern_has_a_specific_recovery_action():
     assert "pi --list-models" in result["next_action"]
 
 
-def test_preflight_command_is_pinned_ephemeral_and_tool_free():
+def test_preflight_command_is_pinned_ephemeral_tool_free_and_scope_overridden():
     command = PREFLIGHT._command(
         "pi",
         model="provider/model-id",
@@ -51,9 +51,35 @@ def test_preflight_command_is_pinned_ephemeral_and_tool_free():
 
     assert command[0] == "pi"
     assert command[command.index("--model") + 1] == "provider/model-id"
+    assert command[command.index("--models") + 1] == "provider/model-id"
     assert command[command.index("--thinking") + 1] == "low"
     assert "--no-session" in command
     assert "--no-tools" in command
     assert "--no-skills" in command
     assert "--no-context-files" in command
     assert command[-1] == "Reply with exactly: PI_EVAL_OK"
+
+
+def test_separate_provider_uses_unqualified_model_and_canonical_scope():
+    command = PREFLIGHT._command(
+        "pi",
+        model="provider/model-id",
+        provider="provider",
+        thinking=None,
+    )
+
+    assert command[command.index("--provider") + 1] == "provider"
+    assert command[command.index("--model") + 1] == "model-id"
+    assert command[command.index("--models") + 1] == "provider/model-id"
+
+
+def test_separate_provider_qualifies_an_unqualified_model_scope():
+    command = PREFLIGHT._command(
+        "pi",
+        model="model-id",
+        provider="provider",
+        thinking=None,
+    )
+
+    assert command[command.index("--model") + 1] == "model-id"
+    assert command[command.index("--models") + 1] == "provider/model-id"
