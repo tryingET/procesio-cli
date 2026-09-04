@@ -62,7 +62,9 @@ def test_two_matching_passing_reports_clear_series():
     assert series.verify([report], 2)["passed"] is False
 
 
-def test_committed_status_remains_honestly_blocked():
+def test_committed_status_remains_honestly_blocked_after_failed_aa():
     status = json.loads((ROOT / "skills" / "evals" / "gates.json").read_text())
     assert status["release_eligible"] is False
-    assert next(row for row in status["gates"] if row["id"] == 5)["status"] == "pending-external-run"
+    gate5 = next(row for row in status["gates"] if row["id"] == 5)
+    assert gate5["status"] == "blocked"
+    assert any("A/A" in blocker and "7.5" in blocker for blocker in status["release_blockers"])
