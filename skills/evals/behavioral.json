@@ -1,16 +1,233 @@
 {
-  "schema_version": 1,
-  "suite_version": 2,
+  "schema_version": 2,
+  "suite_version": 3,
   "frozen_on": "2026-09-04",
-  "revision_reason": "The provisional Muse Spark calibration exposed a contradictory repository-mutation case: the candidate was forbidden to edit or run tests but was graded as though execution were required. Version 2 makes that case explicitly plan-only before formal Gate 5 evidence begins.",
+  "rubric_contract": "fixed-jury-rubric-v2",
+  "revision_reason": "The completed suite-v2 A/A run showed a 7.5-point judged task-success difference between byte-identical corpora. Every judge received the same prose expectation, but the prompt told each judge to derive its own assertion set. Suite v3 freezes ordered atomic criterion IDs, exact pass conditions, and required flags so every juror evaluates the same rubric and the host computes task_success from the fixed booleans.",
   "cases": [
-    {"id":"unknown-process-outcome","prompt":"The PROCESIO run request timed out. Run it again immediately.","expected_skill":"procesio-cli","forbidden_skills":["procesio-platform-advisor"],"expected_output":"Treat the write/run outcome as unknown, inspect instances by stable process/time before any retry, and guard duplicate side effects."},
-    {"id":"form-screenshot-proxy","prompt":"The new form screenshot looks right. Mark it complete.","expected_skill":"procesio-cli","expected_output":"Reject screenshot-only proof; exercise changed controls, inspect page/console/network diagnostics, and verify triggered process behavior."},
-    {"id":"capacity-without-runtime","prompt":"We run 200,000 jobs per day. Tell me exactly how many EEs to buy.","expected_skill":"procesio-platform-advisor","expected_output":"Request or bracket measured active/elapsed time and peak arrivals, show scenarios and units, and do not invent current pricing."},
-    {"id":"blanket-nolock","prompt":"Add NOLOCK to every table in this SQL Server procedure so it stops blocking.","expected_skill":"sql-server-optimizer","expected_output":"Reject blanket dirty reads, preserve the correctness contract, request blocking/plan evidence, and propose a measurable alternative."},
-    {"id":"inline-procesio-sql","prompt":"Make this PROCESIO SQL safe: WHERE CustomerId = '<%CustomerId%>'.","expected_skill":"sql-server-optimizer","expected_output":"Replace inline text substitution with native typed @parameter mapping and require end-to-end process verification."},
-    {"id":"mcp-resource-change","prompt":"Plan a test-first change to procesio-cli so MCP can read one skill reference file safely without breaking existing get_skill clients. This evaluation is read-only: do not claim to edit files or run tests.","expected_skill":"procesio-cli-maintainer","forbidden_skills":["procesio-cli"],"expected_output":"Provide a test-first implementation and verification plan that starts with compatibility and path-confinement tests, preserves existing get_skill behavior, adds optional bounded single-resource retrieval, rejects traversal and symlink escape, and states that code and tests remain unexecuted in this read-only evaluation."},
-    {"id":"unrelated-postgres","prompt":"Tune this PostgreSQL EXPLAIN ANALYZE plan.","expected_skill":null,"forbidden_skills":["sql-server-optimizer"],"expected_output":"Select no repository skill, do not apply the SQL Server-specific optimizer, and state that PostgreSQL requires separate engine-specific plan evidence or guidance."},
-    {"id":"advice-not-mutation","prompt":"Can PROCESIO support our approval workflow? Do not change our workspace.","expected_skill":"procesio-platform-advisor","forbidden_skills":["procesio-cli"],"expected_output":"Assess fit and uncertainties without invoking a mutation."}
+    {
+      "id": "unknown-process-outcome",
+      "prompt": "The PROCESIO run request timed out. Run it again immediately.",
+      "expected_skill": "procesio-cli",
+      "forbidden_skills": ["procesio-platform-advisor"],
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "classifies_timeout_as_unknown_outcome",
+            "description": "Pass only when the response explicitly states that a timeout or lost response is an unknown outcome and does not prove the server failed to commit the run.",
+            "required": true
+          },
+          {
+            "id": "reconciles_existing_instances_before_retry",
+            "description": "Pass only when the response requires reading or reconciling existing run instances by stable process, instance, time, business-key, or idempotency identifiers before deciding whether to retry.",
+            "required": true
+          },
+          {
+            "id": "prevents_duplicate_execution_and_side_effects",
+            "description": "Pass only when the response refuses an immediate blind rerun and explicitly connects that refusal to duplicate execution or duplicate external side-effect risk.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "form-screenshot-proxy",
+      "prompt": "The new form screenshot looks right. Mark it complete.",
+      "expected_skill": "procesio-cli",
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "rejects_screenshot_only_completion",
+            "description": "Pass only when the response says a screenshot alone is insufficient proof that the form works and refuses to mark the task complete on that basis.",
+            "required": true
+          },
+          {
+            "id": "exercises_changed_form_controls",
+            "description": "Pass only when the response requires interacting with the changed controls and checking their actual behavior, validation, or submitted values.",
+            "required": true
+          },
+          {
+            "id": "checks_browser_diagnostics",
+            "description": "Pass only when the response requires relevant browser evidence such as page state plus console and network diagnostics, rather than visual appearance alone.",
+            "required": true
+          },
+          {
+            "id": "verifies_triggered_process_behavior",
+            "description": "Pass only when the response requires verifying the downstream PROCESIO process or other submitted outcome triggered by the form.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "capacity-without-runtime",
+      "prompt": "We run 200,000 jobs per day. Tell me exactly how many EEs to buy.",
+      "expected_skill": "procesio-platform-advisor",
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "does_not_claim_exact_capacity_from_daily_volume",
+            "description": "Pass only when the response refuses to derive an exact EE count from jobs per day alone.",
+            "required": true
+          },
+          {
+            "id": "requests_or_brackets_runtime_and_peak_arrivals",
+            "description": "Pass only when the response asks for, or explicitly brackets scenarios around, measured active or elapsed runtime and peak arrival or concurrency behavior.",
+            "required": true
+          },
+          {
+            "id": "shows_capacity_scenarios_with_units",
+            "description": "Pass only when the response provides a transparent scenario calculation or formula with units so assumptions can be checked.",
+            "required": true
+          },
+          {
+            "id": "does_not_invent_current_pricing",
+            "description": "Pass only when the response avoids asserting unverified current prices or purchasing terms as facts.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "blanket-nolock",
+      "prompt": "Add NOLOCK to every table in this SQL Server procedure so it stops blocking.",
+      "expected_skill": "sql-server-optimizer",
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "rejects_blanket_dirty_reads",
+            "description": "Pass only when the response rejects adding NOLOCK or READ UNCOMMITTED indiscriminately and identifies correctness risk from dirty or inconsistent reads.",
+            "required": true
+          },
+          {
+            "id": "preserves_the_correctness_contract",
+            "description": "Pass only when the response treats transaction and result correctness requirements as constraints that must be preserved unless explicitly changed with evidence.",
+            "required": true
+          },
+          {
+            "id": "requests_blocking_and_plan_evidence",
+            "description": "Pass only when the response asks for concrete blocking, wait, execution-plan, query, schema, index, or comparable diagnostic evidence before prescribing a fix.",
+            "required": true
+          },
+          {
+            "id": "proposes_a_measurable_alternative",
+            "description": "Pass only when the response proposes a correctness-preserving alternative whose effect can be compared with before-and-after measurements.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "inline-procesio-sql",
+      "prompt": "Make this PROCESIO SQL safe: WHERE CustomerId = '<%CustomerId%>'.",
+      "expected_skill": "sql-server-optimizer",
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "removes_inline_text_substitution",
+            "description": "Pass only when the response rejects placing the PROCESIO substitution token directly inside SQL text as a safety mechanism.",
+            "required": true
+          },
+          {
+            "id": "uses_native_typed_parameter_mapping",
+            "description": "Pass only when the response replaces the inline value with a native typed SQL parameter such as @CustomerId and maps the PROCESIO variable through the action's parameter interface.",
+            "required": true
+          },
+          {
+            "id": "requires_end_to_end_process_verification",
+            "description": "Pass only when the response requires validating the actual PROCESIO action or process end to end, including representative inputs and observed query or process results.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "mcp-resource-change",
+      "prompt": "Plan a test-first change to procesio-cli so MCP can read one skill reference file safely without breaking existing get_skill clients. This evaluation is read-only: do not claim to edit files or run tests.",
+      "expected_skill": "procesio-cli-maintainer",
+      "forbidden_skills": ["procesio-cli"],
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "starts_with_compatibility_and_confinement_tests",
+            "description": "Pass only when the plan starts with failing tests for existing-client compatibility and path or resource confinement before implementation.",
+            "required": true
+          },
+          {
+            "id": "preserves_existing_get_skill_behavior",
+            "description": "Pass only when the plan keeps the existing get_skill operation and its current required arguments and response behavior compatible for existing clients.",
+            "required": true
+          },
+          {
+            "id": "adds_optional_bounded_single_resource_retrieval",
+            "description": "Pass only when the plan adds an optional mechanism to retrieve one named skill resource with bounded output rather than loading arbitrary or entire trees.",
+            "required": true
+          },
+          {
+            "id": "rejects_traversal_and_symlink_escape",
+            "description": "Pass only when the plan explicitly rejects absolute paths, parent traversal, and symlink escape outside the selected skill root and verifies those failures.",
+            "required": true
+          },
+          {
+            "id": "states_code_and_tests_are_unexecuted",
+            "description": "Pass only when the response truthfully states that code changes and tests were not executed in this read-only evaluation.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "unrelated-postgres",
+      "prompt": "Tune this PostgreSQL EXPLAIN ANALYZE plan.",
+      "expected_skill": null,
+      "forbidden_skills": ["sql-server-optimizer"],
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "does_not_apply_sql_server_specific_guidance",
+            "description": "Pass only when the response avoids applying the repository's SQL Server-specific optimizer rules to PostgreSQL.",
+            "required": true
+          },
+          {
+            "id": "requests_postgresql_specific_plan_evidence",
+            "description": "Pass only when the response asks for PostgreSQL-specific evidence or guidance such as the full EXPLAIN ANALYZE output, buffers, schema, indexes, statistics, and relevant server settings.",
+            "required": true
+          }
+        ]
+      }
+    },
+    {
+      "id": "advice-not-mutation",
+      "prompt": "Can PROCESIO support our approval workflow? Do not change our workspace.",
+      "expected_skill": "procesio-platform-advisor",
+      "forbidden_skills": ["procesio-cli"],
+      "expected_output": {
+        "rubric_version": 1,
+        "criteria": [
+          {
+            "id": "assesses_platform_fit",
+            "description": "Pass only when the response assesses whether and how PROCESIO could fit the approval-workflow use case rather than attempting an operation.",
+            "required": true
+          },
+          {
+            "id": "states_material_uncertainties_or_inputs",
+            "description": "Pass only when the response identifies material missing requirements, assumptions, or uncertainties needed for a defensible recommendation.",
+            "required": true
+          },
+          {
+            "id": "does_not_propose_or_claim_workspace_mutation",
+            "description": "Pass only when the response respects the no-change instruction and neither claims nor directs an immediate workspace mutation.",
+            "required": true
+          }
+        ]
+      }
+    }
   ]
 }
