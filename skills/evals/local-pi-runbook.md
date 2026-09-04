@@ -79,9 +79,29 @@ uv run python scripts/run-local-pi-gate5-aa.py \
 
 After that first adoption, omit `--confirm-existing-observations`; the saved metadata locks the model, thinking level, suite, seed, corpus fingerprint, thresholds, and strict runner. The harness skips completed `(case, repetition, corpus)` jobs and never truncates the checkpoint.
 
-Do not automatically retry a quota response. Re-run the one-call preflight first, then resume the same directory. A different model requires a new experiment from observation zero.
+For manual operation, do not immediately retry a quota response: run the one-call preflight first, then resume the same directory. A different model requires a new experiment from observation zero.
 
-## 5. Formal order
+## 5. Run one checkpoint unattended
+
+`scripts/run-local-pi-gate5-aa-unattended.py` automates only the current A/A phase. It reads the locked model and thinking level from `run-metadata.json`, runs a preflight, resumes in bounded batches, and uses exponential backoff after quota/rate-limit responses. It stops at the wall-clock deadline, hard model-call cap, A/A completion, or a non-retryable error.
+
+It never starts A/B and never accesses PROCESIO. It writes its latest state to `unattended-status.json` inside the run directory.
+
+Example:
+
+```bash
+uv run python scripts/run-local-pi-gate5-aa-unattended.py \
+  --resume-run scratchpad/gate5-aa-v2-YYYYMMDDTHHMMSSZ \
+  --max-hours 5 \
+  --batch-observations 8 \
+  --initial-backoff-seconds 300 \
+  --max-backoff-seconds 1800 \
+  --confirm-max-model-calls 120
+```
+
+The call cap includes preflight attempts and an upper bound for evaluation calls. A completed A/A run stops immediately even when time or call budget remains. An A/A noise-gate failure also stops immediately for inspection; the coordinator does not roll into A/B.
+
+## 6. Formal order
 
 1. Complete the byte-identical A/A noise-floor run.
 2. Inspect its report before starting A/B.
