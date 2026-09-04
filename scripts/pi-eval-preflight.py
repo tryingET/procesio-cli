@@ -9,7 +9,10 @@ Use a full model identifier from ``pi --list-models`` whenever possible:
 
     uv run python scripts/pi-eval-preflight.py --model provider/model-id
 
-The script never reads or prints Pi credentials.
+The preflight passes both ``--model`` and an exact ``--models`` scope. The latter
+overrides stale user-level ``enabledModels`` patterns, matching the behavioral
+runner's model-selection contract. The script never reads or prints Pi
+credentials.
 """
 from __future__ import annotations
 
@@ -94,8 +97,30 @@ def _classify_failure(stderr: str, stdout: str = "") -> dict:
     return common
 
 
+def _model_selection(model: str, provider: str | None) -> tuple[str, str]:
+    """Return the CLI model value and exact scoped-model pattern.
+
+    When ``provider`` is supplied separately, Pi expects the unqualified model ID
+    for ``--model`` while ``--models`` still needs the canonical provider/model
+    pattern. Without a separate provider, the full configured identifier is valid
+    for both flags.
+    """
+    configured = model.strip()
+    selected_provider = (provider or "").strip() or None
+    cli_model = configured
+    if selected_provider and configured.lower().startswith(selected_provider.lower() + "/"):
+        cli_model = configured[len(selected_provider) + 1 :]
+    scope_pattern = (
+        configured
+        if not selected_provider or configured.lower().startswith(selected_provider.lower() + "/")
+        else f"{selected_provider}/{configured}"
+    )
+    return cli_model, scope_pattern
+
+
 def _command(binary: str, *, model: str, provider: str | None,
              thinking: str | None) -> list[str]:
+    cli_model, scope_pattern = _model_selection(model, provider)
     command = [
         binary,
         "-p",
@@ -107,11 +132,10 @@ def _command(binary: str, *, model: str, provider: str | None,
         "--no-themes",
         "--no-skills",
         "--no-tools",
-        "--model",
-        model,
     ]
     if provider:
         command += ["--provider", provider]
+    command += ["--model", cli_model, "--models", scope_pattern]
     if thinking:
         command += ["--thinking", thinking]
     command += ["--", f"Reply with exactly: {_MARKER}"]
