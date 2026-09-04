@@ -13,6 +13,8 @@ from typing import Any
 BASELINE_REF = "da12de643c8a2355d019f40515766abf80a819df"
 MODEL = "opencode-go/muse-spark-1.3-contributor"
 THINKING = "medium"
+SUITE_VERSION = 4
+RUBRIC_CONTRACT = "fixed-jury-rubric-v2"
 INCOMPLETE = 75
 PHASES = (
     ("aa", "aa", 20260902),
@@ -27,6 +29,7 @@ EVALUATOR_FILES = (
     "verify-skill-eval-series.py",
 )
 EXPECTED_CANDIDATE = {
+    "agent-skill-engineer",
     "procesio-cli",
     "procesio-cli-maintainer",
     "procesio-platform-advisor",
@@ -59,12 +62,14 @@ def rows(path: Path) -> int:
     if not path.is_file():
         return 0
     count = 0
-    for line_number, line in enumerate(
-        path.read_text(encoding="utf-8").splitlines(), 1
-    ):
+    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
         if not line.strip():
             continue
-        if not isinstance(json.loads(line), dict):
+        try:
+            value = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"{path}:{line_number}: invalid JSON") from exc
+        if not isinstance(value, dict):
             raise ValueError(f"{path}:{line_number}: expected JSON object")
         count += 1
     return count
@@ -100,9 +105,7 @@ def git(repo: Path, *args: str, binary: bool = False) -> str | bytes:
 
 
 def resolve_ref(repo: Path, ref: str) -> str:
-    result = command(
-        ["git", "rev-parse", "--verify", f"{ref}^{{commit}}"], cwd=repo
-    )
+    result = command(["git", "rev-parse", "--verify", f"{ref}^{{commit}}"], cwd=repo)
     if result.returncode:
         fetched = command(["git", "fetch", "--no-tags", "origin", ref], cwd=repo)
         if fetched.returncode:
@@ -123,12 +126,7 @@ def extract_skills(repo: Path, ref: str, destination: Path) -> Path:
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:") as archive:
         for member in archive.getmembers():
             pure = PurePosixPath(member.name)
-            if (
-                pure.is_absolute()
-                or ".." in pure.parts
-                or member.issym()
-                or member.islnk()
-            ):
+            if pure.is_absolute() or ".." in pure.parts or member.issym() or member.islnk():
                 raise ValueError(f"unsafe archive member: {member.name}")
             target = (destination / Path(*pure.parts)).resolve()
             if target != root and root not in target.parents:
@@ -152,12 +150,12 @@ def extract_skills(repo: Path, ref: str, destination: Path) -> Path:
 def skill_names(root: Path) -> set[str]:
     names: set[str] = set()
     for skill in root.rglob("SKILL.md"):
-        frontmatter = False
+        in_frontmatter = False
         for line in skill.read_text(encoding="utf-8").splitlines():
             if line.strip() == "---":
-                frontmatter = not frontmatter
+                in_frontmatter = not in_frontmatter
                 continue
-            if frontmatter and line.startswith("name:"):
+            if in_frontmatter and line.startswith("name:"):
                 names.add(line.split(":", 1)[1].strip().strip("'\""))
                 break
     return names
@@ -232,10 +230,12 @@ def prepare(repo: Path, run_root: Path, args: Any) -> dict[str, Any]:
     suite = load(candidate / "evals" / "behavioral.json")
     thresholds = load(candidate / "evals" / "gate5-thresholds.json")
     if (
-        suite.get("suite_version") != 3
-        or suite.get("rubric_contract") != "fixed-jury-rubric-v2"
+        suite.get("suite_version") != SUITE_VERSION
+        or suite.get("rubric_contract") != RUBRIC_CONTRACT
     ):
-        raise RuntimeError("candidate is not the frozen suite-v3 fixed-jury corpus")
+        raise RuntimeError(
+            f"candidate is not the frozen suite-v{SUITE_VERSION} {RUBRIC_CONTRACT} corpus"
+        )
     cases = suite.get("cases")
     if not isinstance(cases, list) or not cases:
         raise RuntimeError("behavioral suite has no cases")
@@ -253,8 +253,8 @@ def prepare(repo: Path, run_root: Path, args: Any) -> dict[str, Any]:
         "model": args.model,
         "provider": args.provider,
         "thinking": args.thinking,
-        "suite_version": 3,
-        "rubric_contract": "fixed-jury-rubric-v2",
+        "suite_version": SUITE_VERSION,
+        "rubric_contract": RUBRIC_CONTRACT,
         "repetitions": args.repetitions,
         "case_count": len(cases),
         "observations_per_phase": len(cases) * args.repetitions * 2,
@@ -308,9 +308,7 @@ def write_status(
         "model_calls_upper_bound": calls,
         "max_model_calls": cap,
         "phases": phase_summary(run_root, int(metadata["observations_per_phase"])),
-        "gate5_evidence": (
-            status == "complete" and reason == "all_gate5_rounds_passed"
-        ),
+        "gate5_evidence": status == "complete" and reason == "all_gate5_rounds_passed",
         "last_result": last,
     }
     save(run_root / "overnight-status.json", payload)
