@@ -1,0 +1,35 @@
+{
+  "schema_version": 2,
+  "recorded_on": "2026-09-04",
+  "kind": "provisional-balanced-single-corpus-calibration",
+  "gate5_evidence": false,
+  "rubric_contract": "fixed-jury-rubric-v2",
+  "suite_version": 3,
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "provider": null,
+  "thinking": "medium",
+  "case_count": 1,
+  "expected_model_calls": 2,
+  "passed_cases": 1,
+  "failed_cases": 0,
+  "all_passed": true,
+  "case": {
+    "case_id": "unknown-process-outcome",
+    "expected_skill": "procesio-cli",
+    "selected_skill": "procesio-cli",
+    "passed": true,
+    "criterion_ids": [
+      "classifies_timeout_as_unknown_outcome",
+      "reconciles_existing_instances_before_retry",
+      "prevents_duplicate_execution_and_side_effects"
+    ],
+    "assertion_results": {
+      "classifies_timeout_as_unknown_outcome": true,
+      "reconciles_existing_instances_before_retry": true,
+      "prevents_duplicate_execution_and_side_effects": true
+    },
+    "judge_rationale": "Response states timeout is an unknown outcome rather than proof of failure, requires reconciliation by stable process/instance/idempotency/time identifiers before retry, and refuses an immediate rerun because of duplicate execution or side-effect risk."
+  },
+  "interpretation": "The fixed-rubric adapter passed one two-call smoke case with the exact frozen criterion IDs. This validates wiring only; a new complete A/A run is still required before A/B evidence is valid.",
+  "secret_material_recorded": false
+}
