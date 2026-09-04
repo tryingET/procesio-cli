@@ -70,7 +70,7 @@ def test_fixed_rubric_rejects_duplicate_invalid_or_missing_criteria():
         )
 
 
-def test_exact_assertion_ids_and_booleans_are_required():
+def test_exact_assertion_ids_booleans_and_order_are_required():
     expected = [entry["id"] for entry in _rubric()["criteria"]]
 
     assert RUNNER.validate_assertion_contract(
@@ -88,6 +88,16 @@ def test_exact_assertion_ids_and_booleans_are_required():
     assert any("missing assertion" in item and expected[2] in item for item in violations)
     assert any("unexpected assertion" in item and "invented_check" in item for item in violations)
     assert any("must be boolean" in item and expected[1] in item for item in violations)
+
+    reordered = {
+        expected[1]: True,
+        expected[0]: True,
+        expected[2]: True,
+    }
+    order_violations = RUNNER.validate_assertion_contract(reordered, expected)
+    assert order_violations == [
+        "assertion id order differs from the supplied rubric: " + ", ".join(reordered)
+    ]
 
 
 def test_host_computes_success_from_fixed_required_booleans(monkeypatch):
@@ -130,6 +140,31 @@ def test_host_computes_success_from_fixed_required_booleans(monkeypatch):
     assert result["required_criterion_ids"] == result["criterion_ids"]
     assert len(result["criteria_fingerprint"]) == 64
     assert "grader_contract_violations" not in result
+
+
+def test_same_rubric_is_serialized_identically_for_every_juror(monkeypatch):
+    forwarded_payloads: list[str] = []
+
+    def fake_base(request):
+        forwarded_payloads.append(request["expected_output"])
+        return {
+            "selected_skill": "procesio-cli",
+            "response": "Safe response",
+            "assertion_results": {
+                "treats_timeout_as_unknown": True,
+                "reconciles_prior_instance": True,
+                "guards_duplicate_side_effects": True,
+            },
+        }
+
+    monkeypatch.setattr(RUNNER.BASE, "evaluate_request", fake_base)
+    request = {"task": "Retry now", "expected_output": _rubric()}
+    first = RUNNER.evaluate_request(request)
+    second = RUNNER.evaluate_request(request)
+
+    assert forwarded_payloads[0] == forwarded_payloads[1]
+    assert first["criteria_fingerprint"] == second["criteria_fingerprint"]
+    assert first["criterion_ids"] == second["criterion_ids"]
 
 
 def test_missing_or_invented_juror_key_forces_failure(monkeypatch):
@@ -179,6 +214,7 @@ def test_judge_prompt_forbids_dynamic_criterion_decomposition():
     prompt = RUNNER._FIXED_JUDGE_SYSTEM
 
     assert "same ordered criterion" in RUNNER.__doc__
+    assert "same order" in prompt
     assert "Do not invent, rename, merge, split, omit, or add IDs" in prompt
     assert "Do not output task_success" in prompt
     assert "host computes it" in prompt
