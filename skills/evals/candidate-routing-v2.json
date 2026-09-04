@@ -1,19 +1,22 @@
 {
-  "accuracy_delta": 0.7708333333333334,
-  "baseline_routing_accuracy": 0.22916666666666666,
-  "case_count": 48,
-  "catalog_fingerprint": "d917a1ac58eeaf631d25244b89d679c6c90b51c408c15f3eee9904416cb24fd3",
+  "accuracy_delta": 0.7692307692307692,
+  "baseline_routing_accuracy": 0.23076923076923078,
+  "case_count": 52,
+  "catalog_fingerprint": "9e95c5a5dd79b3145ee6053118603f5856def09b1d6d0c88912722a6f6ad3afd",
   "collision_rate": 0.0,
   "collisions": 0,
   "confusion": {
     "None": {
-      "None": 6
+      "None": 7
+    },
+    "agent-skill-engineer": {
+      "agent-skill-engineer": 4
     },
     "procesio-cli": {
       "procesio-cli": 13
     },
     "procesio-cli-maintainer": {
-      "procesio-cli-maintainer": 9
+      "procesio-cli-maintainer": 8
     },
     "procesio-platform-advisor": {
       "procesio-platform-advisor": 11
@@ -22,10 +25,10 @@
       "sql-server-optimizer": 9
     }
   },
-  "corpus_fingerprint": "d0f4625eba3fc20ced4a3851682803620b1240c4d9588796176771612637e3f1",
-  "correct": 48,
+  "corpus_fingerprint": "60f920c4820a6ed9b24d06b79ba0b35dcb1a007eee381728ae58dba6377807f0",
+  "correct": 52,
   "method": "Deterministic description-routing lint. Behavioral A/B observations remain a separate release gate.",
   "routing_accuracy": 1.0,
   "schema_version": 2,
-  "skill_count": 4
+  "skill_count": 5
 }
