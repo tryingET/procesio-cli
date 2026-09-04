@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[2]
 BEHAVIORAL = ROOT / "skills" / "evals" / "behavioral.json"
+CRITERION_ID = re.compile(r"^[a-z][a-z0-9]*(?:_[a-z0-9]+)+$")
 
 
 def _data() -> dict:
@@ -17,25 +19,59 @@ def _case(case_id: str) -> dict:
     return next(row for row in data["cases"] if row["id"] == case_id)
 
 
-def test_behavioral_suite_records_the_read_only_contract_revision():
+def _criterion_ids(case: dict) -> list[str]:
+    return [entry["id"] for entry in case["expected_output"]["criteria"]]
+
+
+def test_behavioral_suite_records_the_fixed_jury_revision():
     data = _data()
 
-    assert data["suite_version"] == 2
+    assert data["schema_version"] == 2
+    assert data["suite_version"] == 3
     assert data["frozen_on"] == "2026-09-04"
-    assert "contradictory" in data["revision_reason"].lower()
-    assert "formal Gate 5" in data["revision_reason"]
+    assert data["rubric_contract"] == "fixed-jury-rubric-v2"
+    reason = data["revision_reason"].lower()
+    assert "byte-identical" in reason
+    assert "derive its own assertion set" in reason
+    assert "host computes task_success" in reason
 
 
-def test_mcp_change_case_is_a_read_only_implementation_plan():
+def test_every_case_supplies_the_same_shape_of_atomic_fixed_rubric():
+    for case in _data()["cases"]:
+        rubric = case["expected_output"]
+        criteria = rubric["criteria"]
+        ids = [entry["id"] for entry in criteria]
+
+        assert rubric["rubric_version"] == 1
+        assert 2 <= len(criteria) <= 8
+        assert len(ids) == len(set(ids))
+        assert all(CRITERION_ID.fullmatch(criterion_id) for criterion_id in ids)
+        assert all(entry["required"] is True for entry in criteria)
+        assert all(entry["description"].startswith("Pass only when") for entry in criteria)
+
+
+def test_mcp_change_case_has_exact_nonnegotiable_jury_criteria():
     case = _case("mcp-resource-change")
     prompt = case["prompt"].lower()
-    expected = case["expected_output"].lower()
 
     assert prompt.startswith("plan a test-first change")
     assert "read-only" in prompt
     assert "do not claim to edit files or run tests" in prompt
-    assert "implementation and verification plan" in expected
-    assert "preserves existing get_skill behavior" in expected
-    assert "path-confinement tests" in expected
-    assert "traversal and symlink escape" in expected
-    assert "code and tests remain unexecuted" in expected
+    assert _criterion_ids(case) == [
+        "starts_with_compatibility_and_confinement_tests",
+        "preserves_existing_get_skill_behavior",
+        "adds_optional_bounded_single_resource_retrieval",
+        "rejects_traversal_and_symlink_escape",
+        "states_code_and_tests_are_unexecuted",
+    ]
+
+
+def test_judge_does_not_duplicate_objective_skill_selection_as_a_rubric_item():
+    postgres = _case("unrelated-postgres")
+
+    assert postgres["expected_skill"] is None
+    assert "sql-server-optimizer" in postgres["forbidden_skills"]
+    assert _criterion_ids(postgres) == [
+        "does_not_apply_sql_server_specific_guidance",
+        "requests_postgresql_specific_plan_evidence",
+    ]
