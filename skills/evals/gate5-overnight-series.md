@@ -2,22 +2,22 @@
 
 `scripts/run-local-pi-gate5-series-unattended.py` runs the complete synthetic Gate 5 comparison in a bounded, checkpointed sequence:
 
-1. suite-v3 A/A against two byte-identical copies of the current skill corpus;
+1. suite-v4 A/A against two byte-identical copies of the current skill corpus;
 2. A/B round 1 against the frozen original two-skill corpus, only if A/A passes;
 3. A/B round 2 against the same snapshots, only if round 1 passes; and
 4. deterministic verification that both A/B reports passed with identical corpus fingerprints.
 
-The default frozen baseline is commit `da12de643c8a2355d019f40515766abf80a819df`, containing `procesio-expert` and `sql-server-optimizer`. The candidate snapshot is the current four-skill corpus. The run stores exact corpus, evaluator-runtime, suite, threshold, model, provider, and thinking-level fingerprints before the first model call.
+The default frozen baseline is commit `da12de643c8a2355d019f40515766abf80a819df`, containing `procesio-expert` and `sql-server-optimizer`. The candidate snapshot is the current five-skill corpus, including `agent-skill-engineer`. The run stores exact tracked-commit corpus, evaluator-runtime, suite, threshold, model, provider, and thinking-level fingerprints before the first model call.
 
 The full minimum budget is:
 
 ```text
-3 phases × 8 cases × 5 repetitions × 2 corpora = 240 observations
-240 observations × 2 model calls = 480 model calls
+3 phases × 12 cases × 5 repetitions × 2 corpora = 360 observations
+360 observations × 2 model calls = 720 model calls
 + at least one preflight call
 ```
 
-A hard cap above 481 allows bounded retries and preflights. Completed observations are appended to each phase's `runs.jsonl`. Quota/rate-limit failures back off and resume the same phase. Any failed A/A or A/B gate stops the series; the coordinator never skips a gate or alters thresholds.
+The default hard cap of 900 allows bounded failed attempts and additional preflights. Completed observations are appended to each phase's `runs.jsonl`. Quota/rate-limit failures back off and resume the same phase. Any failed A/A or A/B gate stops the series; the coordinator never skips a gate or alters thresholds.
 
 The evaluated agents receive read-only skill-file tools. The runner does not authenticate to or access PROCESIO.
 
@@ -31,10 +31,10 @@ bash scripts/start-local-pi-gate5-series-overnight.sh
 
 Defaults:
 
-- run root: `scratchpad/gate5-series-v3-overnight`
+- run root: `scratchpad/gate5-series-v4-overnight`
 - wall-clock limit: eight hours
 - batch size: eight observations
-- model-call cap: 560 for the invocation
+- model-call cap: 900 for the invocation
 - initial quota backoff: five minutes
 - maximum quota backoff: 30 minutes
 
@@ -45,7 +45,7 @@ The launcher is idempotent for its run root: invoking it again resumes compatibl
 ## Morning status
 
 ```bash
-cat scratchpad/gate5-series-v3-overnight/series-status.json
+cat scratchpad/gate5-series-v4-overnight/series-status.json
 ```
 
 Interpretation:
@@ -56,4 +56,4 @@ Interpretation:
 - `status: backing_off`: the provider is temporarily quota/rate limited and the coordinator is waiting.
 - `status: error`: a non-retryable setup or evaluator problem occurred.
 
-All phase reports and raw sanitized observations remain under `scratchpad/gate5-series-v3-overnight/phases/`.
+All phase reports and raw sanitized observations remain under `scratchpad/gate5-series-v4-overnight/phases/`.
