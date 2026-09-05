@@ -139,16 +139,22 @@ A fixed rubric reduces decomposition drift; it does not eliminate borderline int
 
 Synthetic response grading cannot prove that a skill successfully controls a real tool or platform. For operational skills, add a controlled field trial:
 
-1. isolate a disposable target;
+1. isolate a disposable or otherwise explicitly bounded target;
 2. confirm authentication and scope;
 3. record the before-state;
 4. preview and validate the intended mutation;
 5. obtain explicit approval;
-6. execute exactly once;
+6. execute exactly once per registered acceptance claim;
 7. capture stable resource and execution IDs;
 8. inspect the actual output and side effects;
 9. clean up only after successful verification;
 10. prove the baseline state was restored where cleanup is expected.
+
+Before the first mutation, apply `field-gate-standard.md`: freeze ordered acceptance check IDs, their direct proof boundary, permitted gaps and equivalent fallbacks, resource and write caps, the full parent/child execution budget, cleanup, unknown-outcome handling, and host-side promotion rules.
+
+The execution agent may supply evidence for each check, but deterministic host code should validate exact IDs and order, Boolean values, budgets, unknown outcomes, cleanup, and gap eligibility. The acting agent's own `passed` or `passed_with_gap` label is not the aggregate verdict.
+
+A platform limitation discovered after execution does not retroactively permit a gap. Preserve the original blocked/failed report, classify the causal layer, and use a separately approved versioned remediation contract to rerun only missing claims. Archive the original evidence and disclose the remediation's additional mutations and full causal execution count.
 
 A status code, “finished” flag, screenshot, or agent self-report is not enough when the user’s actual output can be read directly.
 
@@ -163,9 +169,10 @@ Classify before editing:
 - **observation defect:** test checks a proxy or wrong state;
 - **rubric defect:** criterion is ambiguous, bundled, or impossible in the test context;
 - **juror defect:** exact rubric is inconsistently applied;
-- **host defect:** IDs, booleans, pairing, or aggregation are accepted incorrectly.
+- **host defect:** IDs, booleans, pairing, aggregation, field checks, budgets, or promotion are accepted incorrectly;
+- **field-contract defect:** required outcomes, allowed gaps, nested side effects, or cleanup were not frozen before mutation.
 
-Change only the causal layer. Do not add skill prose to solve a tool or jury problem.
+Change only the causal layer. Do not add skill prose to solve a tool, jury, controller, or one-off project problem.
 
 ## 9. Report honestly
 
@@ -177,7 +184,8 @@ Publish:
 - repetitions, dropouts, timeouts, and quota interruptions;
 - per-case selection, collisions, criterion booleans, and field results;
 - aggregate rates with variance or confidence intervals where meaningful;
+- field acceptance check IDs, permitted gaps, complete causal execution counts, cleanup, and remediation lineage;
 - regressions and unresolved discordant pairs;
 - limitations of synthetic, judge-based, and field evidence.
 
-Use “candidate,” “draft,” or “provisional” until the registered proof is complete. Never convert a partial run or failed A/A into evidence of skill superiority.
+Use “candidate,” “draft,” or “provisional” until the registered proof is complete. Never convert a partial run, failed A/A, or failed required field outcome into evidence of superiority or completion.
