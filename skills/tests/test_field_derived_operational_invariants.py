@@ -58,8 +58,9 @@ def test_webhook_source_description_no_longer_claims_primitive_fanout():
     text = (
         ROOT / "tools" / "procesio" / "dto" / "webhook" / "description.md"
     ).read_text(encoding="utf-8")
+    normalized = " ".join(text.split())
 
     assert "as **one model object**" in text
     assert "does not provide a field-by-field mapping table" in text
-    assert "use a bounded adapter process" in text
+    assert "use a bounded adapter process" in normalized
     assert "binding webhook payload fields to the flow's input variables" not in text
