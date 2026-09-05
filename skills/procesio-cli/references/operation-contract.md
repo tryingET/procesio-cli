@@ -38,6 +38,8 @@ For a staged or multi-resource field project, freeze before the first mutation:
 
 The execution agent may collect evidence, but its own `passed` or `passed_with_gap` label is not authority. A required outcome that fails remains blocked unless the frozen contract already permitted a fallback that proves the same user-visible result. Preserve the original report and use a separately approved, versioned, narrower remediation; do not relabel history after discovering a platform limitation.
 
+Scope each phase verdict to that phase's own obligations. A previously approved gap remains in project or aggregate lineage; it does not make every downstream audit phase `passed_with_gap`. Preserve both scopes explicitly: the current phase may be `passed` while the overall project remains `passed_with_gap`. A new local failure may not be disguised as inherited.
+
 Count the complete causal tree. A form submit, webhook launch, schedule occurrence, or parent-process run may create child and nested process instances. Report top-level deliveries, parent/child instance IDs, data writes, and generated artifacts separately so cost and side-effect budgets are real.
 
 ## Retry classification
