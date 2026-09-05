@@ -57,20 +57,23 @@ def test_schedule_playbook_treats_process_inputs_as_secret_bearing():
     ).read_text(encoding="utf-8")
 
     assert "Literal `processInputs` values may be persisted and returned unmasked" in text
-    assert "treat the schedule get result as secret-bearing" in text.casefold()
+    assert "get-schedule --redact-process-inputs" in text
     assert "stage the payload through a protected `@file`" in text
     assert "clean local-file sweep does not prove" in text
     assert "treat it as disclosed" in text
     assert "Redact every literal schedule input value" in text
 
     assert "GET /api/Schedules/{scheduleId}` returns those values without masking" in notes
-    assert "does not automatically redact `processInputs`" in notes
+    assert "get-schedule --redact-process-inputs" in notes
+    assert "raw get mode can still expose clear values" in notes
     assert "a protected `@file`" in notes
     assert "rotate it" in notes
     assert "clean local-file sweep alone does not prove" in notes
 
     assert "SCHEDULE-INPUT-SECURITY-NOTES.md" in handler
-    assert "raw DTO for round-tripping" in handler
+    assert "preserves the raw DTO by default" in handler
+    assert "--redact-process-inputs" in handler
+    assert "_redact_process_inputs" in handler
 
 
 def test_webhook_playbook_uses_whole_body_model_and_bounded_adapter():
