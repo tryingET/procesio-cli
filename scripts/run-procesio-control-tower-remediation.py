@@ -76,6 +76,13 @@ def _write_json(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
+def _source_label() -> str:
+    try:
+        return str(SOURCE_SKILL.relative_to(ROOT))
+    except ValueError:
+        return str(SOURCE_SKILL)
+
+
 def _snapshot(run_root: Path) -> Path:
     snapshot = run_root / SNAPSHOT_RELATIVE
     manifest_path = snapshot.parent / MANIFEST_NAME
@@ -99,7 +106,7 @@ def _snapshot(run_root: Path) -> Path:
             {
                 "schema_version": 1,
                 "kind": "frozen-agent-skill-package",
-                "source": str(SOURCE_SKILL.relative_to(ROOT)),
+                "source": _source_label(),
                 "snapshot": str(snapshot),
                 "fingerprint_sha256": fingerprint,
                 "file_count": len(files),
