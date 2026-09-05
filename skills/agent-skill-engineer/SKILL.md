@@ -9,11 +9,11 @@ description: >-
   A/B skill evaluations, or audit a skill package. Do not use for ordinary repository
   implementation, workspace operations, unrelated CLI design, image creation, or
   one-off content.
-version: 2.0.0
+version: 2.0.1
 compatibility: Agent Skills compatible clients; Python 3.11+ for bundled helpers.
 owner: procesio-cli maintainers
-last_verified: 2026-09-04
-baseline_version: a47135373c4c0598391e808939397cd139234afd
+last_verified: 2026-09-05
+baseline_version: a47135373c8a2355d019f40515766abf80a819df
 eval_suite: evals/evals.json
 source_policy: timestamped
 routing:
@@ -51,6 +51,7 @@ Create the smallest skill package that reliably changes agent behavior and prove
 11. **Encode recurring lessons structurally.** A repeated correction belongs in a validator, script, schema, test, runtime guard, or source-owned reference before it becomes another paragraph.
 12. **Calibrate expertise.** Use independent expert lenses and evidence, preserve dissent, and require accountable human review where law, medicine, safety, finance, compliance, or organizational authority demands it.
 13. **Never claim readiness without evidence.** Label unexecuted work as draft or provisional and name the missing proof.
+14. **Field gates are fixed contracts.** Predeclare required check IDs, permitted gaps and fallbacks, cleanup, and the full causal side-effect budget. Host code—not the acting agent—decides pass; preserve a failed report and use separately approved remediation instead of relabeling it.
 
 ## Select the mode
 
@@ -70,6 +71,7 @@ Create the smallest skill package that reliably changes agent behavior and prove
 - Read `references/optimization-protocol.md` before iterative or automated skill optimization.
 - Read `references/optimizer-contract.md` before operating the deterministic optimizer controller or producing its reports.
 - Read `references/evaluation-standard.md` before writing cases, rubrics, baselines, juries, or performance claims.
+- Read `references/field-gate-standard.md` before designing a staged field trial, acceptance gate, execution budget, degraded mode, or remediation.
 - Read `references/review-standard.md` before approval, publication, or a production-ready claim.
 - Read `references/expert-lenses.md` for non-trivial or cross-domain review.
 - Read `references/portability-standard.md` when the skill must work across clients, operating systems, or repositories.
@@ -135,6 +137,8 @@ Write a compact skill brief containing:
 
 Turn behavioral requirements into ordered atomic criterion IDs with binary pass conditions. Keep routing selection separate from task quality. Keep formal rubrics hidden from the response-producing candidate.
 
+For operational field work, also freeze ordered acceptance check IDs, permitted degraded modes, cleanup, resource/write/trigger limits, and the full parent/child execution budget. Make the controller validate reports and compute promotion; do not let the acting agent choose its own pass criteria.
+
 ### 4. Explore the design space
 
 For non-trivial skills, produce at least two structurally distinct designs from the same brief. Vary package boundary, degree of freedom, control flow, and resource split—not cosmetic wording. Include a minimal design and a plausible alternative.
@@ -177,6 +181,8 @@ Run the untouched test set once after candidate selection. Report repairs and re
 
 For operational skills, run a controlled end-to-end task through the same surface a real agent uses. Preview mutations, obtain approval, execute once, observe the actual resulting state or output, and clean up only after verification. Preserve safe evidence. A screenshot, HTTP success, compile, lint, or self-report is insufficient when stronger direct observation exists.
 
+When a required field outcome fails, keep the original report blocked or failed. Classify the causal layer, archive the evidence, version a narrower remediation contract with fresh approval, rerun only the missing claims, and let deterministic host validation promote the result. Never weaken a completed gate after seeing a platform limitation.
+
 For subjective skills, use blinded human comparison and concrete preference evidence instead of fabricated objective assertions.
 
 ### 9. Release and learn
@@ -199,6 +205,7 @@ Before changing instructions, classify the failure:
 | Tool/runtime | command, API, auth, or environment failure | fix the executable system, not skill prose |
 | Observation | proxy proof disagrees with real state | strengthen direct verification |
 | Evaluation | leakage, unstable jury, wrong counterfactual, or ambiguous criterion | repair the experiment and restart affected evidence |
+| Field contract | acting agent invents checks, grants an unregistered gap, or ignores nested side effects | fix host-enforced checks and budgets; preserve the result and remediate |
 | Optimization | edit overfits training, regresses a baseline success, or only adds length | reject, record, and try a bounded alternative |
 
 ## Verification
@@ -211,6 +218,7 @@ A publishable result must identify:
 - files created, changed, retired, or deliberately omitted;
 - structural, routing, security, behavioral, test, transfer, and field evidence appropriate to the tier;
 - fixed rubric and experiment versions, edit budget, accepted and rejected hypotheses, and stopping rule;
+- field acceptance check IDs, permitted gaps, complete causal execution counts, cleanup, and any remediation lineage;
 - repairs, regressions, effect size, uncertainty, context and runtime costs;
 - residual risk and proof that remains unavailable;
 - exact commands, artifacts, and fingerprints a maintainer can rerun.
