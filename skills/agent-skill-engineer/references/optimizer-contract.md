@@ -1,6 +1,6 @@
 # Deterministic optimizer controller contract
 
-Use this reference when initializing, staging, accepting, rejecting, inspecting, or finalizing a skill-optimization experiment with `scripts/optimize_skill.py`.
+Use this reference when initializing, staging, accepting, rejecting, inspecting, or finalizing a skill-optimization experiment with the skill's `optimize_skill.py` helper.
 
 ## Contents
 
