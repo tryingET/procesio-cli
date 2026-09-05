@@ -127,15 +127,40 @@ def _write(path: Path, value: dict[str, Any]) -> None:
     temporary.replace(path)
 
 
-def _archive(source: Path, destination: Path) -> bytes:
+def _normalized_final_report(data: bytes) -> bool:
+    try:
+        value = json.loads(data.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError):
+        return False
+    if not isinstance(value, dict):
+        return False
+    marker = value.get("phase06_status_scope")
+    return bool(
+        isinstance(marker, dict)
+        and marker.get("phase_status") == "passed"
+        and marker.get("aggregate_project_status") == "passed_with_gap"
+        and marker.get("inherited_from_phase") == PHASE03_ID
+    )
+
+
+def _archive(
+    source: Path,
+    destination: Path,
+    *,
+    allow_normalized_source: bool = False,
+) -> bytes:
     data = source.read_bytes()
-    if destination.exists() and destination.read_bytes() != data:
+    if destination.exists():
+        archived = destination.read_bytes()
+        if archived == data:
+            return archived
+        if allow_normalized_source and _normalized_final_report(data):
+            return archived
         raise ValueError(f"archive collision at {destination}")
-    if not destination.exists():
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        temporary = destination.with_suffix(destination.suffix + ".tmp")
-        temporary.write_bytes(data)
-        temporary.replace(destination)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temporary = destination.with_suffix(destination.suffix + ".tmp")
+    temporary.write_bytes(data)
+    temporary.replace(destination)
     return data
 
 
@@ -263,7 +288,11 @@ def _normalize_existing_phase06_report(run_root: Path) -> dict[str, Any] | None:
     phase_archive = root / "original-phase06-report.json"
     final_archive = root / "original-final-report.json"
     phase_bytes = _archive(phase06_path, phase_archive)
-    _archive(run_root / "final-report.json", final_archive)
+    _archive(
+        run_root / "final-report.json",
+        final_archive,
+        allow_normalized_source=True,
+    )
     normalized_at = datetime.now(timezone.utc).isoformat()
 
     original_gaps = phase06["gaps"]
@@ -308,6 +337,7 @@ def _normalize_existing_phase06_report(run_root: Path) -> dict[str, Any] | None:
     }
 
     # Phase report is last: an interrupted repair remains rejected by the coordinator.
+    # Existing immutable archives make that partial state safely resumable.
     _write(run_root / "final-report.json", final)
     _write(record_path, record)
     _write(phase06_path, phase06)
