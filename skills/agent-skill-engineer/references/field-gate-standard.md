@@ -110,6 +110,13 @@ When a field gate misses a required outcome:
    phase only after all required checks pass;
 10. archive the pre-remediation report and disclose the additional cost and mutations.
 
+Credential exposure is monotonic for the exposed credential. Deleting a file, masking
+a screenshot, or redacting a transcript copy does not make a completed
+`no_secret_exposure` check true. Preserve the incident, revoke or rotate the credential
+under a separately approved remediation, prove the old value is rejected and the new
+value is distributed only through approved boundaries, invalidate stale exports or
+reports, and then compute a new attributable promotion result.
+
 Never edit the old report in place to pretend the first attempt passed. Promotion is a
 new, attributable result built on preserved evidence.
 
@@ -161,6 +168,7 @@ Record:
 - direct proof per required check;
 - unknown outcomes and reconciliation evidence;
 - temporary-resource cleanup;
+- credential exposures, revocation/rotation evidence, and stale-artifact invalidation;
 - original and remediated reports when remediation occurred;
 - source-owned documentation or code changes derived from the field evidence;
 - residual limits and claims deliberately not made.
