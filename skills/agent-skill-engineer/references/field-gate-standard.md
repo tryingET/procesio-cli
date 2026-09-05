@@ -4,6 +4,17 @@ Use this reference when an Agent Skill controls a real tool, platform, browser,
 database, filesystem, or other externally observable system. It governs field
 acceptance and remediation; it is not a substitute for the domain playbook.
 
+## Contents
+
+1. Freeze the field contract before mutation
+2. Enforce the verdict outside the acting agent
+3. Count the complete causal execution tree
+4. Treat gaps as predeclared design choices
+5. Remediate without rewriting history
+6. Route each lesson to the correct reusable layer
+7. Avoid case-specific overfitting
+8. Minimum field release record
+
 ## 1. Freeze the field contract before mutation
 
 A field trial needs the same discipline as a fixed jury. Before any mutation, lock:
@@ -81,7 +92,7 @@ When a field gate misses a required outcome:
 1. preserve the original report, logs, IDs, screenshots, and before/after evidence;
 2. classify the cause: domain assumption, skill instruction, source-owned reference,
    tool/runtime, platform capability, observation method, or field-contract defect;
-3. write a versioned remediation contract with fresh approval and a narrower mutation
+3. write a separately approved versioned remediation contract with a narrower mutation
    and execution budget;
 4. generate stable non-secret business keys before any retryable operation;
 5. re-read current state and save pre-edit snapshots;
