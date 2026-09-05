@@ -12,8 +12,8 @@
     "ACCEPT_EVIDENCE",
     "RESUME_CHECKPOINT"
   ],
-  "evidence": [
-    "skills/evals/procesio-evidence-normalizer-field-v1.json",
+  "evidence": "skills/evals/procesio-evidence-normalizer-field-v1.json",
+  "additional_evidence": [
     "skills/evals/procesio-evidence-normalizer-resume-branch-v1.json"
   ]
 }
