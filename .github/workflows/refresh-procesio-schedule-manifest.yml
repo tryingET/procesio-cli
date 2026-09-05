@@ -1,0 +1,86 @@
+name: refresh-procesio-schedule-manifest
+
+on:
+  push:
+    paths:
+      - .github/workflows/refresh-procesio-schedule-manifest.yml
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: '3.12'
+      - name: Patch generated tool manifest and router
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path('tools/procesio/tool.yaml')
+          text = path.read_text(encoding='utf-8')
+          old = '''- name: get-schedule
+            description: Get one schedule by id (GET /api/Schedules/{id}).
+            args:
+            - name: profile
+              type: string
+              required: false
+              description: credential profile name (defaults to the stored default profile)
+            - name: workspace-id
+              type: string
+              required: false
+              description: workspace GUID to scope this call (sets/overrides the workspaceid header)
+            - name: environment
+              type: string
+              required: false
+              description: PROCESIO environment for this call, e.g. Internal-QA (defaults to the credential's binding, else the default environment / Internal-PROD)
+            - name: id
+              type: string
+              required: true
+              description: schedule id (scheduleId)
+          '''
+          new = '''- name: get-schedule
+            description: Get one schedule by id; use --redact-process-inputs for safe evidence.
+            args:
+            - name: profile
+              type: string
+              required: false
+              description: credential profile name (defaults to the stored default profile)
+            - name: workspace-id
+              type: string
+              required: false
+              description: workspace GUID to scope this call (sets/overrides the workspaceid header)
+            - name: environment
+              type: string
+              required: false
+              description: PROCESIO environment for this call, e.g. Internal-QA (defaults to the credential's binding, else the default environment / Internal-PROD)
+            - name: id
+              type: string
+              required: true
+              description: schedule id (scheduleId)
+            - name: redact-process-inputs
+              type: boolean
+              required: false
+              description: replace every returned processInputs[].value with [REDACTED]
+          '''
+          count = text.count(old)
+          if count != 1:
+              raise SystemExit(f'expected one get-schedule manifest block, found {count}')
+          path.write_text(text.replace(old, new), encoding='utf-8', newline='\n')
+          PY
+          uv run --with pyyaml python scripts/build-router.py
+          git rm .github/workflows/refresh-procesio-schedule-manifest.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add tools/procesio/tool.yaml CLAUDE.md
+          git diff --cached --check
+          git commit -m 'Regenerate schedule redaction manifest'
+          git push
