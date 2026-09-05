@@ -85,6 +85,12 @@ before execution:
 Otherwise the phase is blocked or failed. Discovery of a platform limitation is
 valuable evidence, but it is not completion of the missing acceptance criterion.
 
+Keep phase-local and aggregate verdicts distinct. A phase verdict covers only that
+phase's frozen obligations and newly observed outcomes. An approved gap from an earlier
+phase remains in project lineage or the aggregate report; it does not force every later
+phase to report `passed_with_gap`. Conversely, a new local failure cannot be hidden as
+an inherited gap. Host code should compute and preserve both verdict scopes separately.
+
 ## 5. Remediate without rewriting history
 
 When a field gate misses a required outcome:
@@ -150,6 +156,7 @@ Record:
 - target and stable IDs, with secrets removed;
 - model/client/tool versions when they affect execution;
 - permitted gaps and actual gaps;
+- phase-local verdicts and the separately computed aggregate/project verdict;
 - exact mutation and full causal execution counts;
 - direct proof per required check;
 - unknown outcomes and reconciliation evidence;
