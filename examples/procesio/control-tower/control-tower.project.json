@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "project_id": "procesio-control-tower-v1",
+  "title": "PROCESIO Control Tower — Automation Evidence & Founder Briefing",
+  "objective": "Turn real CLI, skill-evaluation, field-trial, and repository-health signals into an idempotent evidence ledger, safe operational decisions, a polished intake experience, and an automatically generated founder briefing.",
+  "why_it_is_useful": [
+    "Every future PROCESIO CLI field trial can be normalized and retained instead of disappearing into chat transcripts.",
+    "Interrupted evaluations are routed to a safe resume action instead of being retried blindly.",
+    "Repository pulse data and platform evidence are combined into one founder-readable briefing.",
+    "The project exercises the same platform capabilities the operational skill claims to support and leaves reusable assets behind."
+  ],
+  "target": {
+    "profile": "pure-awesomeness",
+    "environment": "Internal-PROD",
+    "workspace": "procesio-cli-pure-awesomeness",
+    "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135"
+  },
+  "existing_dependency": {
+    "title": "CLI Utility 01 - Evidence Status Normalizer",
+    "process_id": "0528c553-8e17-4185-84cb-11068db503d8",
+    "required": true,
+    "policy": "Re-use this exact verified process. Never duplicate or edit it during the Control Tower build."
+  },
+  "retained_resources": {
+    "data_models": [
+      "CLI Control Tower - Evidence Record"
+    ],
+    "data_stores": [
+      "CLI Control Tower - Evidence Ledger"
+    ],
+    "custom_actions_or_connectors": [
+      "CLI Control Tower - GitHub Public Pulse"
+    ],
+    "credentials": [
+      "CLI Control Tower - GitHub Public API (only if the custom connector needs a non-secret REST credential)"
+    ],
+    "processes": [
+      "CLI Control Tower 01 - Ingest Evidence",
+      "CLI Control Tower 02 - Repository Pulse",
+      "CLI Control Tower 03 - Founder Brief",
+      "CLI Control Tower 04 - Weekly Orchestrator"
+    ],
+    "document_templates": [
+      "CLI Control Tower - Founder Brief"
+    ],
+    "forms": [
+      "CLI Control Tower - Mission Control"
+    ],
+    "schedules": [
+      "CLI Control Tower - Weekly Founder Brief"
+    ],
+    "webhooks_final": [],
+    "webhooks_temporary": [
+      "CLI Control Tower - Intake Drill"
+    ]
+  },
+  "resource_caps": {
+    "new_data_models": 1,
+    "new_data_stores": 1,
+    "new_custom_actions_or_connectors": 1,
+    "new_credentials": 1,
+    "new_processes": 4,
+    "new_document_templates": 1,
+    "new_forms": 1,
+    "new_schedules": 1,
+    "temporary_webhooks": 1,
+    "seed_rows": 12,
+    "representative_process_executions_during_build": 20,
+    "custom_connector_generation_attempts": 2,
+    "custom_connector_install_attempts": 1
+  },
+  "data_model_attributes": [
+    {"name": "Evidence Key", "type": "string", "required": true, "primary_key": true},
+    {"name": "Source", "type": "string", "required": true},
+    {"name": "Title", "type": "string", "required": true},
+    {"name": "Kind", "type": "string", "required": true},
+    {"name": "Status", "type": "string", "required": true},
+    {"name": "Decision", "type": "string", "required": true},
+    {"name": "Severity", "type": "string", "required": true},
+    {"name": "Complete", "type": "boolean", "required": true},
+    {"name": "Gate Evidence", "type": "boolean", "required": true},
+    {"name": "Resumable", "type": "boolean", "required": true},
+    {"name": "Completed", "type": "integer", "required": true},
+    {"name": "Remaining", "type": "integer", "required": true},
+    {"name": "Total", "type": "integer", "required": true},
+    {"name": "Summary", "type": "string", "required": true},
+    {"name": "Next Action", "type": "string", "required": true},
+    {"name": "Payload JSON", "type": "json", "required": true},
+    {"name": "Owner", "type": "string", "required": false},
+    {"name": "Repository", "type": "string", "required": false},
+    {"name": "Repository Commit", "type": "string", "required": false},
+    {"name": "Artifact Reference", "type": "string", "required": false},
+    {"name": "Created At", "type": "datetime", "required": true},
+    {"name": "Updated At", "type": "datetime", "required": true}
+  ],
+  "required_capability_coverage": [
+    "workspace-scoped authentication and stable-ID inventory",
+    "data model creation with all attributes in the initial create",
+    "native PROCESIO data-store provisioning, idempotent row insert/update, filtering, sorting, and CSV export",
+    "process DTO build, designer validation, backend validation, create, re-fetch, audit, single-run verification, output inspection, and activation control",
+    "Node scripting with explicit Timeout, clean typed outputs, and bound Error outputs",
+    "Call Subprocess using plain-variable mappings",
+    "Decisional routing with a default branch and Join convergence",
+    "For Each processing of typed evidence rows",
+    "custom response mapping for synchronous callers",
+    "read-only external API integration through a custom connector, with one successful GitHub call and one expected provider-error test",
+    "document-template creation with a repeating evidence table and generated PDF output",
+    "published themed form with tabs, validation feedback, synchronous process mapping, and browser-level end-to-end proof",
+    "one temporary webhook create/attach/launch/verify/detach/delete lifecycle",
+    "one weekly schedule created disabled, cron-previewed, manually proven through the underlying process, then enabled",
+    "transport export of the retained project with digest and no credential secrets",
+    "final inventory, duplicate check, dependency audit, direct output proof, and retained-resource manifest"
+  ],
+  "security_and_cost": {
+    "public_write_endpoints_retained": 0,
+    "temporary_webhook_must_be_deleted": true,
+    "form_access_token": "Generate a random 128-bit token locally; store the clear token only in gitignored scratchpad with mode 0600; persist only its SHA-256 hash in the process definition.",
+    "external_api_operations": "GitHub public read-only GET operations only.",
+    "credential_secret_export": false,
+    "automatic_retry_after_unknown_write": false,
+    "schedule": {
+      "cron": "0 9 * * 1",
+      "timezone": "Europe/Berlin",
+      "expected_runs_per_month": 4,
+      "per_run_timeout_seconds_max": 300,
+      "monthly_platform_runtime_guard_minutes": 120,
+      "note": "The workspace includes 30 free execution hours per month, but this project intentionally uses a small recurring budget and converts it into durable operational value rather than burning runtime."
+    }
+  },
+  "acceptance": {
+    "minimum_verified_ingest_channels": [
+      "authenticated CLI caller",
+      "published form submission",
+      "temporary webhook drill"
+    ],
+    "minimum_decisions_observed": [
+      "ACCEPT_EVIDENCE",
+      "RESUME_CHECKPOINT",
+      "INVESTIGATE_GATE"
+    ],
+    "ledger_rows_minimum": 4,
+    "founder_brief_pdf_required": true,
+    "weekly_schedule_enabled_after_manual_proof": true,
+    "final_exact_title_duplicates": 0,
+    "final_temporary_webhooks": 0,
+    "final_report": "scratchpad/procesio-control-tower-v1/final-report.json",
+    "deployment_manifest": "scratchpad/procesio-control-tower-v1/deployment.json"
+  }
+}
