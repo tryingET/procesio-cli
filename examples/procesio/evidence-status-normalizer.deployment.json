@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "title": "CLI Utility 01 - Evidence Status Normalizer",
+  "profile": "pure-awesomeness",
+  "environment": "Internal-PROD",
+  "workspace": "procesio-cli-pure-awesomeness",
+  "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135",
+  "process_id": "0528c553-8e17-4185-84cb-11068db503d8",
+  "retained": true,
+  "verified_on": "2026-09-05",
+  "evidence": "skills/evals/procesio-evidence-normalizer-field-v1.json"
+}
