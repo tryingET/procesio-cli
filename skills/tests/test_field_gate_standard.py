@@ -60,7 +60,7 @@ def test_review_and_evaluation_standards_fail_closed_on_field_gate_drift():
     evaluation = (META / "references" / "evaluation-standard.md").read_text(encoding="utf-8")
 
     assert "acting agent invent required checks" in review
-    assert "full causal execution counts" in review
+    assert "complete causal execution counts" in review
     assert "failed required field outcome" in review
     assert "deterministic host code should validate exact IDs and order" in evaluation
     assert "does not retroactively permit a gap" in evaluation
