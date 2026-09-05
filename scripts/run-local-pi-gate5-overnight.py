@@ -22,6 +22,11 @@ uncommitted, read-only observation is safe to retry. The launcher therefore
 restarts the canonical coordinator a bounded number of times for the exact
 ``pi_invocation_failed`` condition; every restart re-runs the normal preflight
 and resumes the frozen corpus, rubric, evaluator, model, and remaining schedule.
+
+For resumptions, the entry point also reuses the exact Python executable spelling
+stored in the phase experiment manifest when it refers to the same interpreter.
+This keeps equivalent uv aliases such as ``bin/python`` and ``bin/python3`` from
+being mistaken for different frozen evaluator commands.
 """
 from __future__ import annotations
 
@@ -54,6 +59,88 @@ def _load_status(path: Path) -> dict[str, Any] | None:
     return value if isinstance(value, dict) else None
 
 
+def _status_bytes(path: Path) -> bytes | None:
+    try:
+        return path.read_bytes()
+    except OSError:
+        return None
+
+
+def _same_executable(left: Path, right: Path) -> bool:
+    try:
+        return os.path.samefile(left, right)
+    except OSError:
+        try:
+            return left.resolve(strict=True) == right.resolve(strict=True)
+        except OSError:
+            return False
+
+
+def _stable_python_executable(current_executable: str | None = None) -> str:
+    """Prefer uv's stable ``python`` alias when it is the same executable."""
+    current = Path(current_executable or sys.executable).expanduser()
+    if os.name != "nt":
+        preferred = current.with_name("python")
+        if preferred.is_file() and _same_executable(preferred, current):
+            return str(preferred)
+    return str(current)
+
+
+def _checkpoint_python(
+    run_root: Path,
+    current_executable: str | None = None,
+) -> str:
+    """Reuse the exact safe interpreter alias frozen in a phase manifest.
+
+    The manifest value is accepted only when its runner target is the frozen
+    strict adapter inside this run and the stored interpreter is the same file as
+    the current uv interpreter. This preserves command identity without trusting
+    an arbitrary executable path from a modified checkpoint.
+    """
+    current = Path(current_executable or sys.executable).expanduser()
+    expected_runner = (
+        run_root / "runtime" / "pi-skill-eval-runner-strict.py"
+    ).resolve()
+
+    phase_ids: list[str] = []
+    status = _load_status(run_root / "series-status.json")
+    if isinstance(status, dict) and isinstance(status.get("current_phase"), str):
+        phase_ids.append(status["current_phase"])
+    for phase_id in ("aa", "ab-round-1", "ab-round-2"):
+        if phase_id not in phase_ids:
+            phase_ids.append(phase_id)
+
+    for phase_id in phase_ids:
+        experiment = _load_status(
+            run_root / "phases" / phase_id / "experiment.json"
+        )
+        if not isinstance(experiment, dict):
+            continue
+        command = experiment.get("runner_command")
+        if (
+            not isinstance(command, list)
+            or len(command) < 2
+            or not all(isinstance(item, str) for item in command[:2])
+        ):
+            continue
+        interpreter = Path(command[0]).expanduser()
+        runner = Path(command[1]).expanduser()
+        try:
+            runner_matches = runner.resolve(strict=True) == expected_runner.resolve(
+                strict=True
+            )
+        except OSError:
+            runner_matches = False
+        if (
+            runner_matches
+            and interpreter.is_file()
+            and _same_executable(interpreter, current)
+        ):
+            return str(interpreter)
+
+    return _stable_python_executable(str(current))
+
+
 def _runner_error_code(status: dict[str, Any]) -> str | None:
     last = status.get("last_result")
     if not isinstance(last, dict):
@@ -68,9 +155,15 @@ def _runner_error_code(status: dict[str, Any]) -> str | None:
     return None
 
 
-def _transient_pi_exit(returncode: int, status: dict[str, Any] | None) -> bool:
+def _transient_pi_exit(
+    returncode: int,
+    status: dict[str, Any] | None,
+    *,
+    status_fresh: bool,
+) -> bool:
     return bool(
-        returncode == 2
+        status_fresh
+        and returncode == 2
         and isinstance(status, dict)
         and status.get("status") == "error"
         and status.get("stop_reason") == "phase_non_retryable"
@@ -97,14 +190,17 @@ def main(argv: list[str] | None = None) -> int:
         raise SystemExit(f"canonical Gate 5 runner is missing: {TARGET}")
 
     forwarded = list(sys.argv[1:] if argv is None else argv)
-    status_path = _run_root(forwarded) / "series-status.json"
+    run_root = _run_root(forwarded)
+    status_path = run_root / "series-status.json"
+    child_python = _checkpoint_python(run_root)
     max_restarts = _positive_int_env("GATE5_TRANSIENT_RESTARTS", 3)
     initial_delay = _positive_int_env("GATE5_TRANSIENT_RETRY_SECONDS", 30)
 
     for restart in range(max_restarts + 1):
+        prior_status = _status_bytes(status_path)
         try:
             process = subprocess.run(
-                [sys.executable, str(TARGET), *forwarded],
+                [child_python, str(TARGET), *forwarded],
                 cwd=ROOT,
                 env=os.environ.copy(),
                 check=False,
@@ -112,8 +208,12 @@ def main(argv: list[str] | None = None) -> int:
         except KeyboardInterrupt:
             return 130
 
+        current_status = _status_bytes(status_path)
         status = _load_status(status_path)
-        if not _transient_pi_exit(int(process.returncode), status):
+        status_fresh = current_status is not None and current_status != prior_status
+        if not _transient_pi_exit(
+            int(process.returncode), status, status_fresh=status_fresh
+        ):
             return int(process.returncode)
         if restart >= max_restarts:
             print(
