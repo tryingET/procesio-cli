@@ -18,10 +18,11 @@ Verified in the `Internal-PROD` environment on 2026-09-05:
 - a claim that the clear value exists “only in a local protected file” is false while
   the same value remains in a readable schedule definition.
 
-The current curated `get-schedule` action preserves the raw API DTO for exact
-round-tripping and does not automatically redact `processInputs`. The generic request
-surface can expose the same values. Treat both as secret-bearing reads whenever a
-schedule has non-empty process inputs.
+The curated `get-schedule` action preserves the raw API DTO by default for backward-
+compatible round-tripping. Use `get-schedule --redact-process-inputs` for ordinary
+inspection and evidence; it copies the DTO while replacing every returned
+`processInputs[].value` with `[REDACTED]`. The generic request surface and the raw
+get mode can still expose clear values, so treat both as secret-bearing reads.
 
 ## Required handling
 
@@ -34,14 +35,14 @@ schedule has non-empty process inputs.
    JSON that may enter shell history, process listings, or logs. Delete the temporary
    file only after the write outcome is reconciled.
 4. Restrict `Schedule.Read` and artifact access to principals that may read the secret.
-5. Never print or persist a raw schedule DTO in ordinary evidence. Record the variable
-   identifiers and replace each sensitive `processInputs[].value` with `[REDACTED]`.
+5. Use `get-schedule --redact-process-inputs` for diagnostics and ordinary evidence.
+   Record variable identifiers and value presence/type, not literal values.
 6. After any accidental transcript, log, screenshot, or artifact exposure, treat the
    value as disclosed and rotate it. Update every dependent hash, schedule input, and
    protected local source as one reconciled change.
 7. Verify rotation by proving the old value is rejected, the new value succeeds, the
-   schedule contains only the new value, and no retained evidence contains either
-   clear value.
+   schedule contains only the new value through a redacted structural read, and no
+   retained evidence contains either clear value.
 
 ## Evidence boundary
 
