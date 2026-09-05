@@ -6,10 +6,11 @@
 # ///
 """Run Control Tower Phase 06 with the frozen remediation skill package.
 
-The helper also repairs one fail-closed reporting error without re-running work:
-when Phase 06 completed all of its own checks but copied Phase 03's approved connector
-fallback into its phase status, host code archives the report and scopes Phase 06 to
-``passed`` while retaining the aggregate project ``passed_with_gap`` verdict.
+The helper separates a phase-local verdict from inherited project gaps. It may repair a
+completed Phase 06 report that carried only Phase 03's approved connector fallback, but
+never when the field evidence records an unremediated credential exposure. In that
+case a separately approved token-rotation attestation is required and Phase 06 must be
+rerun from the rotated state.
 """
 from __future__ import annotations
 
@@ -24,15 +25,29 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 ORIGINAL = ROOT / "scripts" / "run-procesio-control-tower.py"
+SCHEDULE_HANDLER = ROOT / "tools" / "procesio" / "handlers" / "schedules.py"
+SCHEDULE_SECURITY = ROOT / "tools" / "procesio" / "SCHEDULE-INPUT-SECURITY-NOTES.md"
 DEFAULT_RUN_ROOT = ROOT / "scratchpad" / "procesio-control-tower-v1"
 DEFAULT_SKILL_ROOT = DEFAULT_RUN_ROOT / "remediation/phase05/frozen-skill/procesio-cli"
 CONFIRMATION = "FINISH_PROCESIO_CONTROL_TOWER_V1_PHASE06"
 ORIGINAL_CONFIRMATION = "BUILD_PROCESIO_CONTROL_TOWER_V1"
+ROTATION_CONFIRMATION = "ROTATE_PROCESIO_CONTROL_TOWER_ACCESS_TOKEN_V1"
 PROJECT_ID = "procesio-control-tower-v1"
 PHASE03_ID = "03-github-connector-and-pulse"
 PHASE05_ID = "05-mission-control-and-webhook-drill"
 PHASE06_ID = "06-export-audit-and-acceptance"
+ROTATION_REMEDIATION_ID = "control-tower-token-rotation-v1"
 NORMALIZATION_RELATIVE = Path("remediation/phase06-status-scope")
+ROTATION_ATTESTATION_RELATIVE = Path("remediation/token-rotation/attestation.json")
+EXPOSURE_EVIDENCE_RELATIVES = (
+    Path("remediation/phase05/stages/05r-2-whole-body-webhook.json"),
+    Path("remediation/phase05/stages/05r-3-reconcile-and-promote.json"),
+    Path(f"phases/{PHASE06_ID}.json"),
+)
+
+
+class SecurityRotationRequired(ValueError):
+    """Known credential exposure has no valid rotation attestation."""
 
 
 def _load_original():
@@ -73,19 +88,30 @@ def _install_execution_skill(module, skill_root: Path) -> None:
             module.OPENAPI,
             original_skill / "SKILL.md",
             skill_root / "SKILL.md",
+            SCHEDULE_HANDLER,
+            SCHEDULE_SECURITY,
         )
 
     def prompt(run_root: Path, phase):
         text = original_prompt(run_root, phase)
         if getattr(phase, "phase_id", None) == PHASE06_ID:
-            text += """
+            attestation = run_root / ROTATION_ATTESTATION_RELATIVE
+            text += f"""
 
-Phase-status scope for the final audit:
+Phase-status and credential-safety scope for the final audit:
 - Judge Phase 06 only from its own required checks and outcomes.
 - Phase 03's approved connector fallback remains an inherited project gap. Keep it in
   final/project gap lineage, not in Phase 06's status or Phase 06 `gaps`.
 - Use `status: passed` when Phase 06 has no new local gap. A new Phase 06 gap is
   blocking because this phase is not authorized to use `passed_with_gap`.
+- Read and cite the token-rotation attestation at {attestation} when it exists. The
+  old credential exposure remains historical evidence; the attestation proves
+  revocation and replacement rather than erasing that history.
+- Use `get-schedule --redact-process-inputs` for every schedule read. Raw schedule
+  reads are forbidden. Never print or persist a literal process-input value.
+- The export, CSV, deployment manifest, and final report must describe the current
+  post-rotation state. Include a `security_rotation_attestation` path/digest in the
+  Phase 06 report and final report when rotation occurred.
 """
         return text
 
@@ -125,6 +151,106 @@ def _write(path: Path, value: dict[str, Any]) -> None:
         encoding="utf-8",
     )
     temporary.replace(path)
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _exposure_text(value: Any) -> str:
+    return " ".join(json.dumps(value, ensure_ascii=False, sort_keys=True).casefold().split())
+
+
+def _records_credential_exposure(value: Any) -> bool:
+    text = _exposure_text(value)
+    markers = (
+        "displayed the access token value in this conversation transcript",
+        "transient exposure",
+        "transcript an exposure surface",
+        "clear token was printed",
+        "token printed to agent transcript",
+    )
+    return any(marker in text for marker in markers)
+
+
+def _security_exposure_evidence(run_root: Path) -> list[str]:
+    paths: list[str] = []
+    for relative in EXPOSURE_EVIDENCE_RELATIVES:
+        path = run_root / relative
+        if not path.is_file():
+            continue
+        value = _load(path, f"security evidence {path}")
+        if _records_credential_exposure(value):
+            paths.append(str(path))
+    phase05_path = run_root / f"phases/{PHASE05_ID}.json"
+    if phase05_path.is_file():
+        phase05 = _load(phase05_path, "Phase 05 report")
+        security = phase05.get("security_remediation")
+        if isinstance(security, dict) and security.get("incident") == "clear_token_printed_to_agent_transcript":
+            paths.append(str(phase05_path))
+    return sorted(set(paths))
+
+
+def _validate_rotation_attestation(run_root: Path) -> dict[str, Any]:
+    path = run_root / ROTATION_ATTESTATION_RELATIVE
+    value = _load(path, "token rotation attestation")
+    expected = {
+        "schema_version": 1,
+        "kind": "procesio-control-tower-token-rotation-attestation",
+        "project_id": PROJECT_ID,
+        "remediation_id": ROTATION_REMEDIATION_ID,
+        "status": "passed",
+        "redaction_erased_incident": False,
+        "old_token_revoked": True,
+        "replacement_token_proven": True,
+        "secret_scan_clean": True,
+        "phase05_security_lineage_updated": True,
+        "phase06_artifacts_invalidated": True,
+    }
+    for key, expected_value in expected.items():
+        if value.get(key) != expected_value:
+            raise ValueError(f"token rotation attestation field {key!r} is invalid")
+    phase05 = _load(run_root / f"phases/{PHASE05_ID}.json", "post-rotation Phase 05")
+    security = phase05.get("security_remediation")
+    if not isinstance(security, dict) or security.get("remediation_id") != ROTATION_REMEDIATION_ID:
+        raise ValueError("Phase 05 does not contain matching token-rotation lineage")
+    if security.get("new_token_sha256") != value.get("new_token_sha256"):
+        raise ValueError("Phase 05 and token-rotation attestation disagree on replacement hash")
+    return value
+
+
+def _phase06_has_rotation_lineage(report: dict[str, Any], run_root: Path) -> bool:
+    marker = report.get("security_rotation_attestation")
+    expected_path = str(run_root / ROTATION_ATTESTATION_RELATIVE)
+    expected_hash = _sha256(run_root / ROTATION_ATTESTATION_RELATIVE)
+    if isinstance(marker, str):
+        return marker == expected_path
+    return bool(
+        isinstance(marker, dict)
+        and marker.get("path") == expected_path
+        and marker.get("sha256") == expected_hash
+    )
+
+
+def _security_gate(run_root: Path) -> tuple[list[str], dict[str, Any] | None]:
+    evidence = _security_exposure_evidence(run_root)
+    attestation_path = run_root / ROTATION_ATTESTATION_RELATIVE
+    if evidence and not attestation_path.is_file():
+        raise SecurityRotationRequired(
+            "clear-token exposure is recorded in field evidence; redaction does not "
+            "satisfy no_secret_exposure. Run the separately approved token rotation "
+            f"with --confirm {ROTATION_CONFIRMATION} before Phase 06"
+        )
+    attestation = _validate_rotation_attestation(run_root) if attestation_path.is_file() else None
+    phase06_path = run_root / f"phases/{PHASE06_ID}.json"
+    if attestation is not None and phase06_path.is_file():
+        report = _load(phase06_path, "existing Phase 06 report")
+        if not _phase06_has_rotation_lineage(report, run_root):
+            raise ValueError(
+                "an existing Phase 06 report lacks matching post-rotation lineage; "
+                "preserve it as stale and rerun Phase 06"
+            )
+    return evidence, attestation
 
 
 def _normalized_final_report(data: bytes) -> bool:
@@ -344,6 +470,26 @@ def _normalize_existing_phase06_report(run_root: Path) -> dict[str, Any] | None:
     return record
 
 
+def _attach_rotation_lineage(run_root: Path, attestation: dict[str, Any]) -> None:
+    phase06_path = run_root / f"phases/{PHASE06_ID}.json"
+    report = _load(phase06_path, "new Phase 06 report")
+    if report.get("status") != "passed" or report.get("unknown_outcomes") not in ([], None):
+        raise ValueError("post-rotation Phase 06 did not finish with a clean local pass")
+    marker = {
+        "path": str(run_root / ROTATION_ATTESTATION_RELATIVE),
+        "sha256": _sha256(run_root / ROTATION_ATTESTATION_RELATIVE),
+        "old_token_revoked": attestation.get("old_token_revoked"),
+        "replacement_token_proven": attestation.get("replacement_token_proven"),
+    }
+    report["security_rotation_attestation"] = marker
+    _write(phase06_path, report)
+    final_path = run_root / "final-report.json"
+    if final_path.is_file():
+        final = _load(final_path, "post-rotation final report")
+        final["security_rotation_attestation"] = marker
+        _write(final_path, final)
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _parser().parse_args(argv)
     if args.confirm != CONFIRMATION:
@@ -357,7 +503,32 @@ def main(argv: list[str] | None = None) -> int:
         run_root = args.run_root.expanduser().resolve()
         module = _load_original()
         _install_execution_skill(module, args.skill_root.expanduser().resolve())
-        normalized = _normalize_existing_phase06_report(run_root)
+        exposure_evidence, attestation = _security_gate(run_root)
+        phase06_path = run_root / f"phases/{PHASE06_ID}.json"
+        phase06_existed = phase06_path.is_file()
+        normalized = (
+            None
+            if exposure_evidence or attestation is not None
+            else _normalize_existing_phase06_report(run_root)
+        )
+    except SecurityRotationRequired as exc:
+        print(
+            json.dumps(
+                {
+                    "error": {
+                        "code": "security_rotation_required",
+                        "message": str(exc),
+                        "details": {
+                            "run_root": str(args.run_root.expanduser().resolve()),
+                            "rotation_script": str(ROOT / "scripts/run-procesio-control-tower-token-rotation.py"),
+                            "confirmation": ROTATION_CONFIRMATION,
+                        },
+                    }
+                },
+                separators=(",", ":"),
+            )
+        )
+        return 2
     except (OSError, ValueError, json.JSONDecodeError) as exc:
         print(json.dumps({"error": {"code": "frozen_phase06_setup_failed", "message": str(exc), "details": {}}}, separators=(",", ":")))
         return 2
@@ -384,7 +555,25 @@ def main(argv: list[str] | None = None) -> int:
     ]
     if args.interactive_approval:
         forwarded.append("--interactive-approval")
-    return int(module.main(forwarded))
+    code = int(module.main(forwarded))
+    if code == 0 and attestation is not None and not phase06_existed:
+        try:
+            _attach_rotation_lineage(run_root, attestation)
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            print(
+                json.dumps(
+                    {
+                        "error": {
+                            "code": "post_rotation_phase06_lineage_failed",
+                            "message": str(exc),
+                            "details": {"phase06_report": str(phase06_path)},
+                        }
+                    },
+                    separators=(",", ":"),
+                )
+            )
+            return 2
+    return code
 
 
 if __name__ == "__main__":
