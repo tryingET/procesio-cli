@@ -77,6 +77,8 @@ The remediation:
 - promotes Phase 05 only after three fixed-check stage reports pass host validation;
 - then runs the original export/audit Phase 06.
 
+If Phase 06 has already completed all of its checks but incorrectly reports `passed_with_gap` only because it carried forward Phase 03's approved connector fallback, run the same command again after updating the repository. The frozen Phase 06 helper validates the existing checks, prior-phase lineage, final report, deployment manifest, project export, and ledger CSV; archives the original reports; scopes Phase 06 to `passed`; retains the aggregate project `passed_with_gap` verdict; and completes the coordinator with zero model or platform calls. It refuses normalization for any new Phase 06 gap, failed check, missing artifact, or unknown outcome.
+
 There are no automatic stage retries after an ambiguous submit, launch, write, or run.
 
 ## Intended retained outcome
