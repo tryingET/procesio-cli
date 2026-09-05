@@ -101,6 +101,32 @@ def _completed_phase06_run(tmp_path: Path, module, *, local_gap: bool = False) -
     return run_root
 
 
+def _rotation_attestation(run_root: Path, module) -> dict:
+    attestation = {
+        "schema_version": 1,
+        "kind": "procesio-control-tower-token-rotation-attestation",
+        "project_id": module.PROJECT_ID,
+        "remediation_id": module.ROTATION_REMEDIATION_ID,
+        "status": "passed",
+        "redaction_erased_incident": False,
+        "old_token_revoked": True,
+        "replacement_token_proven": True,
+        "secret_scan_clean": True,
+        "phase05_security_lineage_updated": True,
+        "phase06_artifacts_invalidated": True,
+        "new_token_sha256": "b" * 64,
+    }
+    _write(run_root / module.ROTATION_ATTESTATION_RELATIVE, attestation)
+    phase05 = _phase(module, module.PHASE05_ID, "passed")
+    phase05["security_remediation"] = {
+        "remediation_id": module.ROTATION_REMEDIATION_ID,
+        "incident": "clear_token_printed_to_agent_transcript",
+        "new_token_sha256": attestation["new_token_sha256"],
+    }
+    _write(run_root / f"phases/{module.PHASE05_ID}.json", phase05)
+    return attestation
+
+
 def test_helper_is_uv_script_and_requires_separate_confirmation(capsys):
     text = SCRIPT.read_text(encoding="utf-8")
     assert text.startswith("#!/usr/bin/env -S uv run --script")
@@ -157,11 +183,14 @@ def test_install_execution_skill_preserves_metadata_and_scopes_phase06_status(tm
     required = module._required_files()
     assert original / "SKILL.md" in required
     assert frozen / "SKILL.md" in required
+    assert helper.SCHEDULE_HANDLER in required
     phase06_prompt = module._prompt(
         tmp_path, SimpleNamespace(phase_id=helper.PHASE06_ID)
     )
     assert "inherited project gap" in phase06_prompt
     assert "Use `status: passed`" in phase06_prompt
+    assert "get-schedule --redact-process-inputs" in phase06_prompt
+    assert "security_rotation_attestation" in phase06_prompt
     assert module._prompt(tmp_path, SimpleNamespace(phase_id="other")) == "base prompt"
 
 
@@ -244,6 +273,57 @@ def test_phase06_status_normalization_rejects_a_new_local_gap(tmp_path):
     assert not (run_root / helper.NORMALIZATION_RELATIVE).exists()
 
 
+def test_recorded_token_exposure_requires_separate_rotation(tmp_path):
+    helper = _load()
+    run_root = tmp_path / "run"
+    evidence_path = run_root / helper.EXPOSURE_EVIDENCE_RELATIVES[0]
+    _write(
+        evidence_path,
+        {
+            "summary": (
+                "A debug print displayed the access token value in this conversation "
+                "transcript; the raw file was later redacted."
+            )
+        },
+    )
+
+    with pytest.raises(helper.SecurityRotationRequired, match="redaction does not"):
+        helper._security_gate(run_root)
+
+
+def test_security_gate_accepts_matching_rotation_attestation(tmp_path):
+    helper = _load()
+    run_root = tmp_path / "run"
+    evidence_path = run_root / helper.EXPOSURE_EVIDENCE_RELATIVES[0]
+    _write(evidence_path, {"summary": "Transient exposure of the clear token occurred."})
+    expected = _rotation_attestation(run_root, helper)
+
+    evidence, attestation = helper._security_gate(run_root)
+
+    assert str(evidence_path) in evidence
+    assert attestation == expected
+
+
+def test_attach_rotation_lineage_to_fresh_phase06_and_final_report(tmp_path):
+    helper = _load()
+    run_root = tmp_path / "run"
+    attestation = _rotation_attestation(run_root, helper)
+    phase06 = _phase(helper, helper.PHASE06_ID, "passed")
+    _write(run_root / f"phases/{helper.PHASE06_ID}.json", phase06)
+    _write(run_root / "final-report.json", {"project_status": "passed_with_gap"})
+
+    helper._attach_rotation_lineage(run_root, attestation)
+
+    phase06 = json.loads(
+        (run_root / f"phases/{helper.PHASE06_ID}.json").read_text(encoding="utf-8")
+    )
+    marker = phase06["security_rotation_attestation"]
+    assert marker["path"] == str(run_root / helper.ROTATION_ATTESTATION_RELATIVE)
+    assert marker["old_token_revoked"] is True
+    final = json.loads((run_root / "final-report.json").read_text(encoding="utf-8"))
+    assert final["security_rotation_attestation"] == marker
+
+
 def test_main_forwards_only_phase06_with_frozen_skill(tmp_path, monkeypatch):
     helper = _load()
     original = _skill(tmp_path / "original")
@@ -263,6 +343,7 @@ def test_main_forwards_only_phase06_with_frozen_skill(tmp_path, monkeypatch):
     module._prompt = lambda _run_root, _phase: "prompt"
     module.main = lambda argv: calls.extend(argv) or 0
     monkeypatch.setattr(helper, "_load_original", lambda: module)
+    monkeypatch.setattr(helper, "_security_gate", lambda _run_root: ([], None))
     monkeypatch.setattr(
         helper,
         "_normalize_existing_phase06_report",
