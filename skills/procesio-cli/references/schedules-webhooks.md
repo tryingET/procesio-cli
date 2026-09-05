@@ -15,7 +15,7 @@ Create or change a time/event trigger and prove that its saved configuration lau
 
 1. Fetch existing schedule/webhook, target process, notifications, activation, timezone/recurrence, and recent related instances.
 2. Check duplicate or overlapping triggers and downstream rate/concurrency limits.
-3. For a schedule with non-empty process inputs, inspect only a redacted structural summary unless the clear values are strictly needed and the observation boundary is protected. Treat the schedule GET result as secret-bearing.
+3. For a schedule with non-empty process inputs, use `get-schedule --redact-process-inputs` for ordinary inspection and evidence. Use the raw mode only when exact values are strictly needed and the observation boundary is protected; treat that result as secret-bearing.
 4. For webhooks, inspect authentication/signature expectations, sample body, generated body model and attribute IDs, response behavior, replay handling, secret exposure, and the exact `WebhookVariableDto`/attachment shape.
 5. Inspect the complete process tree the trigger can create. One delivery may create a trigger-target instance plus awaited child and nested instances.
 
@@ -28,7 +28,7 @@ Create or change a time/event trigger and prove that its saved configuration lau
 
 ## Execute
 
-- Save the trigger once and re-fetch it.
+- Save the trigger once and re-fetch it through the redacted mode when process inputs are present.
 - For a schedule, enable only for an agreed controlled occurrence or invoke the underlying process separately before enablement.
 - Do not place a long-lived or broad credential in literal schedule inputs when a reference-based design is available. When a literal secret is temporarily unavoidable, use a dedicated least-privilege rotatable value, stage the payload through a protected `@file`, restrict schedule readers, and never echo the raw read DTO.
 - For a webhook, launch with a signed/controlled sample using the intended content type and headers.
