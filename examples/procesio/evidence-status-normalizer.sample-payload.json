@@ -1,0 +1,16 @@
+{
+  "status": {
+    "schema_version": 1,
+    "kind": "gate5-fixed-jury-series-status",
+    "status": "complete",
+    "stop_reason": "gate5_series_passed",
+    "gate5_evidence": true,
+    "completed_observations": 360,
+    "remaining_observations": 0,
+    "total_observations": 360,
+    "suite_version": 4,
+    "rubric_contract": "fixed-jury-rubric-v2",
+    "candidate_commit": "a47135373c4c0598391e808939397cd139234afd",
+    "baseline_commit": "da12de643c8a2355d019f40515766abf80a819df"
+  }
+}
