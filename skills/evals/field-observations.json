@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "updated_on": "2026-09-04",
+  "updated_on": "2026-09-05",
   "observations": [
     {
       "id": "workspace-apikey-readiness-403",
@@ -192,6 +192,92 @@
         "the local agent respected mutation approval, single-execution, evidence, workspace-scope, and cleanup boundaries",
         "this is one successful field run, not the blinded repeated model A/B evidence required for Gate 5"
       ],
+      "secret_material_recorded": false
+    },
+    {
+      "id": "evidence-status-normalizer-persistent-utility-success",
+      "source": "operator-provided final report from a local Pi field trial",
+      "target": {
+        "environment": "Internal-PROD",
+        "workspace": "procesio-cli-pure-awesomeness",
+        "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135",
+        "profile": "pure-awesomeness",
+        "process_title": "CLI Utility 01 - Evidence Status Normalizer"
+      },
+      "observed": {
+        "process_id": "0528c553-8e17-4185-84cb-11068db503d8",
+        "instance_id": "480f7790-ca31-4501-b572-1a047d40be29",
+        "executions": 1,
+        "retained": true,
+        "final_exact_title_count": 1,
+        "runtime_status": 50,
+        "validation": {
+          "designer_errors": 0,
+          "designer_warnings": 0,
+          "backend_valid": true,
+          "force_used": false
+        },
+        "node_action": {
+          "template_id": "e0fc20c3-e333-554c-a062-f64894db51dd",
+          "node_id": "839cf1d3-9acf-4ff7-b391-6a8e465964d2",
+          "code_property_id": "1e6a5523-2091-6c4c-94ac-c7984074673d",
+          "timeout_property_id": "d3e52aab-b9d0-2d42-911e-b0e6de177a57",
+          "single_result_property_id": "51b9fcdc-b18b-2a40-a73b-fc04657657bc",
+          "error_property_id": "9e0110c9-9ae1-6f46-80c1-ffda425d7282"
+        },
+        "observed_output": {
+          "script_error": null,
+          "normalized": {
+            "decision": "ACCEPT_EVIDENCE",
+            "complete": true,
+            "gate5_evidence": true,
+            "resumable": false,
+            "status": "complete",
+            "stop_reason": "gate5_series_passed",
+            "completed_observations": 360,
+            "remaining_observations": 0,
+            "total_observations": 360
+          },
+          "summary_contains": "ACCEPT_EVIDENCE",
+          "next_action_non_empty": true
+        },
+        "autonomous_triggers": 0,
+        "external_dependencies": 0,
+        "audit_findings": {
+          "fail": 0,
+          "warn": 0,
+          "info": 0
+        },
+        "capabilities": [
+          "check-auth",
+          "list-processes",
+          "process-create --dry-run",
+          "process-create",
+          "get-process",
+          "procesio agent verify --run",
+          "get-instance-output",
+          "procesio audit",
+          "list-schedules",
+          "get-webhooks"
+        ],
+        "agent_behavior": [
+          "stopped on the exact workspace boundary and checked authentication before mutation",
+          "proved no exact-title duplicate existed before creation",
+          "validated the live DTO before one create without --force",
+          "executed exactly once through verify --run and used the returned instance ID directly",
+          "verified the actual normalized output and empty script_error rather than relying on status 50",
+          "proved zero autonomous triggers and zero external dependencies",
+          "retained exactly one verified process for later manual use"
+        ]
+      },
+      "conclusions": [
+        "the CLI can create, validate, execute, inspect, audit, and retain a reusable PROCESIO utility under an explicit mutation contract",
+        "the live Node template and output-property mappings matched the committed compact config",
+        "the process converted the completed Gate 5 status into the expected ACCEPT_EVIDENCE decision",
+        "the process is manually invokable only; no webhook or form interface was created",
+        "this is direct field evidence for the operational CLI and skill, not a substitute for synthetic portfolio comparisons"
+      ],
+      "evidence_file": "skills/evals/procesio-evidence-normalizer-field-v1.json",
       "secret_material_recorded": false
     }
   ]
