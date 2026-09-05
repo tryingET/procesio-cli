@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "kind": "procesio-field-gate-and-platform-semantics-evidence",
+  "recorded_on": "2026-09-05",
+  "provenance": {
+    "source": "operator-provided output from the real PROCESIO Control Tower field run",
+    "local_report_path": "scratchpad/procesio-control-tower-v1/phases/05-mission-control-and-webhook-drill.json",
+    "secret_material_recorded": false
+  },
+  "target": {
+    "profile": "pure-awesomeness",
+    "environment": "Internal-PROD",
+    "workspace": "procesio-cli-pure-awesomeness",
+    "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135"
+  },
+  "completed_before_gate": {
+    "phases_01_to_04": "passed except the explicitly permitted Phase 03 connector fallback",
+    "retained_form": {
+      "title": "CLI Control Tower - Mission Control",
+      "form_id": "779a5829-a132-4194-a3cb-55b5bd648f83",
+      "published": true,
+      "tiny_url": "https://forms.procesio.app/xG6_G3SHta"
+    },
+    "temporary_webhook_cleanup": {
+      "title": "CLI Control Tower - Intake Drill",
+      "detached": true,
+      "deleted": true,
+      "final_exact_title_count": 0
+    }
+  },
+  "observed_platform_semantics": [
+    {
+      "id": "form_native_sync_writer_contract",
+      "fact": "The real form submission launched Ingest Evidence and wrote the ledger row, but the form SPA native output-map writer did not automatically render the result because the synchronous custom response lacked the variable-instance envelope consumed by the writer.",
+      "proof_boundary": "real browser submission, live process instance, live ledger row, and SPA response-writer inspection",
+      "non_proof": "manually invoking the writer with a previously completed instance is not evidence that native form submission rendered the result"
+    },
+    {
+      "id": "webhook_whole_body_mapping_contract",
+      "fact": "The webhook body is supplied as one generated model object. Direct field-by-field mapping into multiple primitive process inputs produced a never-started process instance and no ledger row.",
+      "proof_boundary": "one real anonymous webhook launch, time-window reconciliation, instance status 1 with zero actions, and zero matching ledger rows",
+      "repair_pattern": "use one compatible model-typed input or a bounded adapter that extracts webhook-model attributes and calls the retained primitive-input process through plain variables"
+    }
+  ],
+  "field_gate_result": {
+    "agent_reported_status": "passed_with_gap",
+    "host_coordinator_status": "error",
+    "host_reason": "only phase 03 may pass with a documented gap",
+    "phase05_accepted": false,
+    "phase06_started": false,
+    "unknown_mutation_outcomes": 0,
+    "assessment": "The host gate behaved correctly. Both missing outcomes were required core acceptance criteria, not predeclared permitted gaps."
+  },
+  "causal_attribution": {
+    "domain_and_platform_facts": [
+      "native form output mapping depends on the live synchronous response contract",
+      "webhook attachment uses a whole-body generated model rather than primitive fan-out"
+    ],
+    "field_contract_integrity": [
+      "the acting agent must not choose new permitted gaps after observing results",
+      "the host must validate fixed field checks, gap eligibility, cleanup, and full causal execution counts",
+      "nested process instances must be counted, not only top-level form submissions or webhook launches"
+    ],
+    "not_attributed_to": [
+      "authentication",
+      "workspace targeting",
+      "the fixed-jury synthetic evaluator",
+      "a quota or rate limit"
+    ]
+  },
+  "repository_changes_derived": [
+    "added a separately approved fixed-check Phase 05 remediation contract and coordinator",
+    "added a frozen full-skill-package snapshot wrapper for remediation",
+    "added host-side exact check-order, gap, unknown-outcome, and execution-budget validation",
+    "updated reusable form E2E guidance for native synchronous result proof and caller compatibility",
+    "updated reusable webhook guidance and source documentation for whole-body model mapping and bounded adapters",
+    "updated process guidance to preserve public variable IDs and count complete parent/child instance trees",
+    "added a general meta-skill field-gate/remediation standard without embedding this project's IDs or titles"
+  ],
+  "claims_not_made": [
+    "Phase 05 has not yet passed",
+    "the native form-result contract has not yet been repaired and proven",
+    "the whole-body webhook adapter has not yet completed a successful launch and ledger write",
+    "Phase 06 export and final acceptance have not yet run"
+  ]
+}
