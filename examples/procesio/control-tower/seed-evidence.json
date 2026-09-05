@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "records": [
+    {
+      "evidence_key": "gate5-suite-v4-complete",
+      "source": "skill-evaluation",
+      "title": "Fixed-jury Gate 5 series passed",
+      "kind": "evaluation",
+      "owner": "procesio-cli",
+      "artifact_reference": "skills/evals/local-pi-gate5-suite-v4-passed.json",
+      "status": {
+        "status": "complete",
+        "stop_reason": "gate5_series_passed",
+        "completed_observations": 360,
+        "remaining_observations": 0,
+        "total_observations": 360,
+        "resumable": false,
+        "gate5_evidence": true
+      },
+      "expected_decision": "ACCEPT_EVIDENCE"
+    },
+    {
+      "evidence_key": "gate5-suite-v4-resume-example",
+      "source": "skill-evaluation",
+      "title": "Rate-limited Gate 5 checkpoint",
+      "kind": "evaluation",
+      "owner": "procesio-cli",
+      "artifact_reference": "skills/evals/procesio-evidence-normalizer-resume-branch-v1.json",
+      "status": {
+        "status": "paused",
+        "stop_reason": "model_quota_exhausted",
+        "completed_observations": 351,
+        "remaining_observations": 9,
+        "total_observations": 360,
+        "resumable": true,
+        "gate5_evidence": false
+      },
+      "expected_decision": "RESUME_CHECKPOINT"
+    },
+    {
+      "evidence_key": "dynamic-jury-aa-noise-failure",
+      "source": "evaluator-diagnosis",
+      "title": "Dynamic-jury A/A noise exceeded limit",
+      "kind": "evaluation-defect",
+      "owner": "agent-skill-engineer",
+      "artifact_reference": "skills/evals/local-pi-aa-muse-spark-medium-v2-noise-failed.json",
+      "status": {
+        "status": "blocked",
+        "stop_reason": "aa_task_success_rate_delta_exceeded",
+        "completed_observations": 80,
+        "remaining_observations": 0,
+        "total_observations": 80,
+        "resumable": false,
+        "gate5_evidence": false
+      },
+      "expected_decision": "INVESTIGATE_GATE"
+    },
+    {
+      "evidence_key": "normalizer-field-trial-success",
+      "source": "procesio-field-trial",
+      "title": "Evidence Status Normalizer retained and verified",
+      "kind": "platform-field-trial",
+      "owner": "procesio-cli",
+      "artifact_reference": "skills/evals/procesio-evidence-normalizer-field-v1.json",
+      "status": {
+        "status": "complete",
+        "stop_reason": "retained_utility_verified",
+        "completed_observations": 1,
+        "remaining_observations": 0,
+        "total_observations": 1,
+        "resumable": false,
+        "gate5_evidence": true
+      },
+      "expected_decision": "ACCEPT_EVIDENCE"
+    }
+  ]
+}
