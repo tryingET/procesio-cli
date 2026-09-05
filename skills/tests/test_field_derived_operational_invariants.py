@@ -27,12 +27,21 @@ def test_process_lifecycle_preserves_callers_and_counts_children():
 
 def test_form_e2e_requires_native_result_path_not_manual_dom_proof():
     text = (REFERENCES / "form-e2e.md").read_text(encoding="utf-8")
+    notes = (
+        ROOT / "tools" / "procesio" / "dto" / "form" / "RUN-PROCESS-RESULT-NOTES.md"
+    ).read_text(encoding="utf-8")
 
+    assert "tools/procesio/dto/form/RUN-PROCESS-RESULT-NOTES.md" in text
     assert "variable-instance collection" in text
     assert "one real native form action" in text
     assert "Do not call the SPA's writer manually" in text
     assert "direct CLI/subprocess callers still receive" in text
     assert "no secret default" in text
+
+    assert "`content.variable`" in notes
+    assert "compatibility envelope" in notes
+    assert "The example is structural, not a DTO to copy literally" in notes
+    assert "Do not call the SPA writer manually" in notes
 
 
 def test_webhook_playbook_uses_whole_body_model_and_bounded_adapter():
