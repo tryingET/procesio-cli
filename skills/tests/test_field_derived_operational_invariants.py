@@ -55,6 +55,7 @@ def test_schedule_playbook_treats_process_inputs_as_secret_bearing():
     handler = (
         ROOT / "tools" / "procesio" / "handlers" / "schedules.py"
     ).read_text(encoding="utf-8")
+    notes_normalized = " ".join(notes.split())
 
     assert "Literal `processInputs` values may be persisted and returned unmasked" in text
     assert "get-schedule --redact-process-inputs" in text
@@ -63,12 +64,13 @@ def test_schedule_playbook_treats_process_inputs_as_secret_bearing():
     assert "treat it as disclosed" in text
     assert "Redact every literal schedule input value" in text
 
-    assert "GET /api/Schedules/{scheduleId}` returns those values without masking" in notes
-    assert "get-schedule --redact-process-inputs" in notes
-    assert "raw get mode can still expose clear values" in notes
-    assert "a protected `@file`" in notes
-    assert "rotate it" in notes
-    assert "clean local-file sweep alone does not prove" in notes
+    # Natural-language requirements must survive harmless Markdown reflow.
+    assert "GET /api/Schedules/{scheduleId}` returns those values without masking" in notes_normalized
+    assert "get-schedule --redact-process-inputs" in notes_normalized
+    assert "raw get mode can still expose clear values" in notes_normalized
+    assert "a protected `@file`" in notes_normalized
+    assert "rotate it" in notes_normalized
+    assert "clean local-file sweep alone does not prove" in notes_normalized
 
     assert "SCHEDULE-INPUT-SECURITY-NOTES.md" in handler
     assert "preserves the raw DTO by default" in handler
