@@ -38,10 +38,13 @@ Do not publish when any of these is true:
 - the skill duplicates authoritative tool schemas or volatile facts without an owner;
 - evaluation criteria were invented after seeing results;
 - different jurors receive different criteria or control the aggregate verdict;
+- a field trial lets the acting agent invent required checks, permit a new gap, or control the aggregate field verdict after seeing results;
+- a field budget ignores triggered, child, or nested process instances and therefore understates cost or side effects;
 - a claimed improvement lacks the correct baseline;
 - A/A exceeds the pre-registered noise limit;
 - a high-consequence operational skill has no controlled field proof;
 - the completion claim relies on a proxy when direct observation is available;
+- a failed required field outcome was relabeled as `passed_with_gap` without a predeclared equivalent fallback;
 - generated or translated integration artifacts are stale;
 - the package is still marked draft or contains placeholders.
 
@@ -68,6 +71,7 @@ Do not publish when any of these is true:
 - Can an agent accidentally cross workspace, tenant, repository, or filesystem boundaries?
 - Does “dry-run,” “read-only,” or “approved” have observable enforcement?
 - Can cleanup delete anything not created by this run?
+- Does the execution budget count the full causal tree, including subprocess and trigger-created instances?
 
 ### Evaluation attack
 
@@ -77,6 +81,9 @@ Do not publish when any of these is true:
 - Are jurors given identical IDs, order, wording, and required flags?
 - Does host code reject missing, extra, renamed, reordered, or non-Boolean results?
 - Is the field test observing the user's outcome rather than a convenient proxy?
+- Were field check IDs, permitted degraded modes, budgets, cleanup, and promotion rules fixed before the first mutation?
+- Does deterministic host code validate the field report and compute pass, rather than trusting the acting agent's label?
+- If remediation occurred, is the original failed report archived and the extra mutation/execution cost disclosed?
 
 ### Maintenance attack
 
@@ -113,6 +120,7 @@ A release record should identify:
 - A/A verdict when required;
 - A/B rounds and minimum effect when required;
 - real field task, target isolation, observed output, and cleanup;
+- frozen field check IDs, permitted gaps, complete causal execution counts, and remediation lineage;
 - target clients and operating systems tested;
 - known limitations, manual checks, and rollback or retirement path.
 
@@ -128,6 +136,7 @@ Route every new signal:
 - tool/API mismatch → executable contract fix;
 - stale fact → source refresh and timestamp;
 - real field failure → sanitized regression case plus direct-proof improvement;
+- failed field gate with repairable scope → preserve the original report, write a separately approved remediation contract, and promote only through host validation;
 - portfolio collision → description or ownership redesign;
 - jury disagreement → fixed criterion clarification or evaluator repair.
 
