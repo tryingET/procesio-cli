@@ -24,9 +24,11 @@ The build contract covers the broad operational surface represented by the `proc
 
 - `control-tower.project.json` — exact retained-resource names, caps, security policy, and acceptance criteria.
 - `control-tower.field-contract.md` — six gated execution phases and required evidence.
+- `phase05-remediation.field-contract.md` — separately approved repair contract for native form-result and whole-body webhook proof when the original Phase 05 gaps are present.
 - `github-public-pulse.openapi.json` — two-operation, read-only public GitHub connector source.
 - `seed-evidence.json` — real repository evaluation and field-trial records used to seed the ledger.
 - `../../../scripts/run-procesio-control-tower.py` — resumable PEP 723/uv coordinator that drives local Pi with `zai/glm-5.3` at `high` reasoning.
+- `../../../scripts/run-procesio-control-tower-remediation.py` — canonical fixed-check remediation and finish entry point; it freezes the complete operational skill package before resuming field work.
 
 ## Preview
 
@@ -53,6 +55,29 @@ uv run --script scripts/run-procesio-control-tower.py \
 ```
 
 Each phase runs in a fresh Pi context, reads the same committed contract, and writes a checkpoint report under `scratchpad/procesio-control-tower-v1/phases/`. A later invocation skips passed phases. It stops rather than automatically repeating a phase after a missing or ambiguous report, because the phase may already have committed platform state.
+
+## Repair the known Phase 05 gaps and finish
+
+When the existing Phase 05 report contains the observed `form-sync-result-rendering` and `webhook-field-mapping` gaps, do not edit it to `passed` and do not loosen the original coordinator. Run the separately approved remediation:
+
+```bash
+uv run --script scripts/run-procesio-control-tower-remediation.py \
+  --confirm REMEDIATE_AND_FINISH_PROCESIO_CONTROL_TOWER_V1 \
+  --max-hours 8
+```
+
+The remediation:
+
+- snapshots the entire `procesio-cli` skill package into the gitignored run root and verifies its fingerprint on resume;
+- keeps the original Phase 05 report and logs as evidence;
+- repairs the form's real native synchronous result path while preserving direct callers;
+- uses a temporary whole-body webhook adapter rather than unsupported primitive fan-out;
+- permits one form submission, one webhook delivery, and at most five process instances including nested children;
+- deletes the temporary webhook and adapter;
+- promotes Phase 05 only after three fixed-check stage reports pass host validation;
+- then runs the original export/audit Phase 06.
+
+There are no automatic stage retries after an ambiguous submit, launch, write, or run.
 
 ## Intended retained outcome
 
