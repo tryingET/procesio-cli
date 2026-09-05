@@ -1,15 +1,13 @@
 {
   "schema_version": 1,
-  "as_of": "2026-09-04",
+  "as_of": "2026-09-05",
   "release_eligible": false,
   "release_blockers": [
-    "Gate 5 suite-v2 A/A completed but failed because byte-identical arms differed by 7.5 percentage points in judged task success. The evaluator allowed each juror to invent its own assertion decomposition.",
-    "The fixed-jury-rubric-v2 contract now freezes exact atomic criterion IDs and host-side aggregation. Suite v4 expands coverage to the complete five-skill portfolio, so a fresh suite-v4 A/A run from observation zero must pass before A/B begins.",
-    "After A/A passes, two fresh-context blinded A/B reports comparing the original two-skill baseline with the current five-skill corpus must clear the registered bar."
+    "Gate 5 passed for the frozen candidate commit a47135373c4c0598391e808939397cd139234afd, but the current loaded skill corpus no longer matches that evaluated snapshot because agent-skill-engineer was materially changed afterward. Restore or explicitly release the evaluated package, or revalidate the changed package before marking current main release-eligible."
   ],
   "last_green_ci": {
-    "run_id": 33914790497,
-    "head_sha": "689f6a4b43169f3110951833078d7aeb2e8214ee",
+    "run_id": 33936590782,
+    "head_sha": "a12b6e9e92e6ba7584cd347d5a73cf9c73833025",
     "matrix": [
       "ubuntu-latest / Python 3.11",
       "ubuntu-latest / Python 3.12",
@@ -78,7 +76,13 @@
     {
       "id": 5,
       "name": "behavioral-retuning",
-      "status": "blocked",
+      "status": "passed",
+      "evaluated_candidate_commit": "a47135373c4c0598391e808939397cd139234afd",
+      "evaluated_candidate_fingerprint": "036016a5908792fc9fac1f6d603586a61400e3649f7b42d990026f55b2d79f3b",
+      "baseline_commit": "da12de643c8a2355d019f40515766abf80a819df",
+      "baseline_fingerprint": "a85a68df6d19ed1c2a90d6ed08fd5cf1f2997e9b38878c6728a86ba93ef60ce1",
+      "suite_version": 4,
+      "rubric_contract": "fixed-jury-rubric-v2",
       "evidence": [
         "scripts/run-skill-behavior-evals.py",
         "scripts/pi-skill-eval-runner.py",
@@ -104,7 +108,8 @@
         "skills/evals/local-pi-aa-muse-spark-checkpoint-20.json",
         "skills/evals/local-pi-aa-muse-spark-medium-v2-noise-failed.json",
         "skills/evals/fixed-jury-rubric-v3.json",
-        "skills/evals/local-pi-fixed-jury-smoke-v3.json"
+        "skills/evals/local-pi-fixed-jury-smoke-v3.json",
+        "skills/evals/local-pi-gate5-suite-v4-passed.json"
       ]
     },
     {
