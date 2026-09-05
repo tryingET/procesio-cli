@@ -59,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
         pi,
         "-p",
         "--no-session",
+        "--no-skills",
     ]
     if not args.interactive_approval:
         command.append("--approve")
