@@ -13,7 +13,7 @@ version: 2.0.1
 compatibility: Agent Skills compatible clients; Python 3.11+ for bundled helpers.
 owner: procesio-cli maintainers
 last_verified: 2026-09-05
-baseline_version: a47135373c8a2355d019f40515766abf80a819df
+baseline_version: a47135373c4c0598391e808939397cd139234afd
 eval_suite: evals/evals.json
 source_policy: timestamped
 routing:
