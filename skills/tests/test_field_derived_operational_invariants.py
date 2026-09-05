@@ -57,7 +57,7 @@ def test_schedule_playbook_treats_process_inputs_as_secret_bearing():
     ).read_text(encoding="utf-8")
 
     assert "Literal `processInputs` values may be persisted and returned unmasked" in text
-    assert "treat the schedule GET result as secret-bearing" in text.casefold()
+    assert "treat the schedule get result as secret-bearing" in text.casefold()
     assert "stage the payload through a protected `@file`" in text
     assert "clean local-file sweep does not prove" in text
     assert "treat it as disclosed" in text
