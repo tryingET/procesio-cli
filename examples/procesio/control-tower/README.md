@@ -1,0 +1,69 @@
+# PROCESIO Control Tower
+
+`PROCESIO Control Tower — Automation Evidence & Founder Briefing` is a retained operational project for the `procesio-cli-pure-awesomeness` workspace. It turns the repository's real evaluation and field-trial evidence into an idempotent ledger, a founder-readable PDF briefing, and safe next actions.
+
+It is deliberately not a throwaway showcase. Once deployed, future CLI/skill work can submit evidence through an authenticated local caller or the published Mission Control form. A weekly orchestrator refreshes public repository pulse data and generates a new briefing.
+
+## What it exercises
+
+The build contract covers the broad operational surface represented by the `procesio-cli` skill:
+
+- workspace-scoped authentication and inventory;
+- data model + native data-store lifecycle and row verification;
+- compact process DTOs, validation, audit, execution, and direct output reads;
+- Node scripting, error outputs, Decisional, Join, For Each, and Call Subprocess;
+- custom response mapping;
+- connector-builder with a safe public GitHub OpenAPI contract;
+- document template and generated PDF verification;
+- styled form creation and real-browser E2E;
+- temporary webhook lifecycle with cleanup;
+- disabled-first schedule creation and controlled enablement;
+- project export and ledger CSV verification.
+
+## Files
+
+- `control-tower.project.json` — exact retained-resource names, caps, security policy, and acceptance criteria.
+- `control-tower.field-contract.md` — six gated execution phases and required evidence.
+- `github-public-pulse.openapi.json` — two-operation, read-only public GitHub connector source.
+- `seed-evidence.json` — real repository evaluation and field-trial records used to seed the ledger.
+- `../../../scripts/run-procesio-control-tower.py` — resumable PEP 723/uv coordinator that drives local Pi with `zai/glm-5.3` at `high` reasoning.
+
+## Preview
+
+```bash
+uv run --script scripts/run-procesio-control-tower.py --dry-run
+```
+
+The preview makes no model or PROCESIO calls.
+
+## Build or resume
+
+```bash
+uv run --script scripts/run-procesio-control-tower.py \
+  --confirm BUILD_PROCESIO_CONTROL_TOWER_V1
+```
+
+The default model is exactly `zai/glm-5.3` with thinking level `high`. The coordinator refuses to silently substitute a different provider/model. Override only when explicitly intended:
+
+```bash
+uv run --script scripts/run-procesio-control-tower.py \
+  --model opencode-go/glm-5.3 \
+  --thinking high \
+  --confirm BUILD_PROCESIO_CONTROL_TOWER_V1
+```
+
+Each phase runs in a fresh Pi context, reads the same committed contract, and writes a checkpoint report under `scratchpad/procesio-control-tower-v1/phases/`. A later invocation skips passed phases. It stops rather than automatically repeating a phase after a missing or ambiguous report, because the phase may already have committed platform state.
+
+## Intended retained outcome
+
+- one Evidence Record data model;
+- one Evidence Ledger data store;
+- four Control Tower processes plus the pre-existing immutable normalizer;
+- one safe public GitHub connector, or a documented non-secret Call API fallback;
+- one founder-brief document template;
+- one published Mission Control form;
+- one enabled weekly schedule after manual proof;
+- zero retained anonymous webhooks;
+- one project export and one ledger CSV in local gitignored evidence storage.
+
+The weekly schedule is intentionally small—four runs per month with a five-minute per-run ceiling—so the free 30-hour monthly platform allowance is converted into ongoing value rather than consumed for spectacle.
