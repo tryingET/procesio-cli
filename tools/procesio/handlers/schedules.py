@@ -16,6 +16,10 @@ Verified routes + methods (Web-API, tag Schedules; perms in parens):
   project list   GET    /api/Projects/{id}/restricted/schedules      (Schedule.Read)
 
 The create/update body shape is captured in PROCESIO-API-NOTES.md (Hard rule 6).
+Security: literal ``processInputs`` are persisted and returned by schedule reads.
+The curated handler intentionally preserves the raw DTO for round-tripping, so read
+SCHEDULE-INPUT-SECURITY-NOTES.md before storing authentication material there or
+capturing a get-schedule result in logs, transcripts, screenshots, or evidence.
 """
 from __future__ import annotations
 
