@@ -62,9 +62,23 @@ def test_two_matching_passing_reports_clear_series():
     assert series.verify([report], 2)["passed"] is False
 
 
-def test_committed_status_remains_honestly_blocked_after_failed_aa():
+def test_gate5_pass_is_scoped_and_release_stays_blocked_on_skill_drift():
     status = json.loads((ROOT / "skills" / "evals" / "gates.json").read_text())
-    assert status["release_eligible"] is False
+    evidence = json.loads(
+        (ROOT / "skills" / "evals" / "local-pi-gate5-suite-v4-passed.json").read_text()
+    )
+
     gate5 = next(row for row in status["gates"] if row["id"] == 5)
-    assert gate5["status"] == "blocked"
-    assert any("A/A" in blocker and "7.5" in blocker for blocker in status["release_blockers"])
+    assert gate5["status"] == "passed"
+    assert gate5["evaluated_candidate_commit"] == evidence["result"]["candidate_commit"]
+    assert gate5["evaluated_candidate_fingerprint"] == evidence["result"]["candidate_fingerprint"]
+    assert evidence["result"]["gate5_evidence"] is True
+    assert evidence["series_verification"]["passed"] is True
+    assert evidence["result"]["completed_observations"] == 360
+
+    assert status["release_eligible"] is False
+    assert any(
+        "current loaded skill corpus" in blocker
+        and gate5["evaluated_candidate_commit"] in blocker
+        for blocker in status["release_blockers"]
+    )
