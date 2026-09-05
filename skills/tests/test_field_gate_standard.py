@@ -32,6 +32,7 @@ def test_meta_skill_routes_field_trials_to_fixed_gate_standard():
 
 def test_field_gate_standard_is_general_and_host_enforced():
     text = STANDARD.read_text(encoding="utf-8")
+    normalized = " ".join(text.split())
 
     for phrase in (
         "ordered required check IDs",
@@ -48,7 +49,7 @@ def test_field_gate_standard_is_general_and_host_enforced():
         "Avoid case-specific overfitting",
         "Project-specific ID, title, payload, or workaround",
     ):
-        assert phrase in text
+        assert phrase in normalized
 
     # General doctrine must not hard-code this field project's identity.
     for forbidden in (
