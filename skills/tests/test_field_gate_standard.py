@@ -35,6 +35,8 @@ def test_field_gate_standard_is_general_and_host_enforced():
 
     for phrase in (
         "ordered required check IDs",
+        "fingerprint of the complete skill package",
+        "including `SKILL.md`, references, scripts, and assets",
         "The host computes the aggregate verdict",
         "complete causal execution tree",
         "A required outcome that fails is not converted into a gap",
