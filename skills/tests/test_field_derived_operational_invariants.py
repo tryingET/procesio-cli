@@ -31,7 +31,7 @@ def test_form_e2e_requires_native_result_path_not_manual_dom_proof():
         ROOT / "tools" / "procesio" / "dto" / "form" / "RUN-PROCESS-RESULT-NOTES.md"
     ).read_text(encoding="utf-8")
 
-    assert "tools/procesio/dto/form/RUN-PROCESS-RESULT-NOTES.md" in text
+    assert "source-owned form-event result contract" in text
     assert "variable-instance collection" in text
     assert "one real native form action" in text
     assert "Do not call the SPA's writer manually" in text
