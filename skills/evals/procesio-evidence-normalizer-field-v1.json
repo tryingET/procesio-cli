@@ -1,0 +1,142 @@
+{
+  "schema_version": 1,
+  "kind": "procesio-field-trial-evidence",
+  "recorded_on": "2026-09-05",
+  "provenance": {
+    "source": "operator-provided final report from the local Pi field trial",
+    "local_report_path": "scratchpad/evidence-status-normalizer-result.json",
+    "local_report_committed": false,
+    "secret_material_recorded": false
+  },
+  "target": {
+    "profile": "pure-awesomeness",
+    "environment": "Internal-PROD",
+    "workspace": "procesio-cli-pure-awesomeness",
+    "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135"
+  },
+  "process": {
+    "title": "CLI Utility 01 - Evidence Status Normalizer",
+    "process_id": "0528c553-8e17-4185-84cb-11068db503d8",
+    "retained": true,
+    "final_exact_title_count": 1,
+    "graph": [
+      "Start",
+      "Normalize evidence status",
+      "Stop"
+    ],
+    "variables": [
+      {
+        "name": "status",
+        "type": "json",
+        "direction": "input",
+        "required": true
+      },
+      {
+        "name": "normalized",
+        "type": "json",
+        "direction": "output"
+      },
+      {
+        "name": "script_error",
+        "type": "string",
+        "direction": "output"
+      }
+    ]
+  },
+  "execution": {
+    "instance_id": "480f7790-ca31-4501-b572-1a047d40be29",
+    "executions": 1,
+    "execution_path": "procesio agent verify --run",
+    "runtime_status": 50,
+    "list_instances_used": false
+  },
+  "validation": {
+    "dry_run_first": true,
+    "designer": {
+      "errors": 0,
+      "warnings": 0,
+      "clean": true
+    },
+    "backend": {
+      "valid": true,
+      "errors": []
+    },
+    "force_used": false,
+    "verify_verdict": "pass",
+    "audit_verdict": "pass"
+  },
+  "resolved_node": {
+    "template_name": "Node",
+    "template_id": "e0fc20c3-e333-554c-a062-f64894db51dd",
+    "node_id": "839cf1d3-9acf-4ff7-b391-6a8e465964d2",
+    "properties": {
+      "Code": {
+        "property_id": "1e6a5523-2091-6c4c-94ac-c7984074673d",
+        "variables": [
+          "status"
+        ]
+      },
+      "Timeout": {
+        "property_id": "d3e52aab-b9d0-2d42-911e-b0e6de177a57",
+        "value": 60
+      },
+      "Single Result": {
+        "property_id": "51b9fcdc-b18b-2a40-a73b-fc04657657bc",
+        "variable": "normalized"
+      },
+      "Error": {
+        "property_id": "9e0110c9-9ae1-6f46-80c1-ffda425d7282",
+        "variable": "script_error"
+      }
+    }
+  },
+  "observed_output": {
+    "script_error": null,
+    "normalized": {
+      "schema_version": 1,
+      "decision": "ACCEPT_EVIDENCE",
+      "complete": true,
+      "gate5_evidence": true,
+      "resumable": false,
+      "status": "complete",
+      "stop_reason": "gate5_series_passed",
+      "completed_observations": 360,
+      "remaining_observations": 0,
+      "total_observations": 360
+    },
+    "summary_contains": "ACCEPT_EVIDENCE",
+    "next_action": "Archive the evidence and fingerprints, then proceed to the next approved field task."
+  },
+  "scope_checks": {
+    "autonomous_triggers": 0,
+    "external_dependencies": 0,
+    "webhooks": 0,
+    "schedules": 0,
+    "forms": 0,
+    "credentials": 0,
+    "subprocesses": 0,
+    "database_actions": 0,
+    "files": 0
+  },
+  "audit_findings": {
+    "fail": 0,
+    "warn": 0,
+    "info": 0
+  },
+  "capabilities": [
+    "check-auth",
+    "list-processes",
+    "process-create --dry-run",
+    "process-create",
+    "get-process",
+    "procesio agent verify --run",
+    "get-instance-output",
+    "procesio audit",
+    "list-schedules",
+    "get-webhooks"
+  ],
+  "discrepancies": [],
+  "unverified": [
+    "form, webhook, and broader end-to-end checks were not applicable because no such interface or trigger was in scope"
+  ]
+}
