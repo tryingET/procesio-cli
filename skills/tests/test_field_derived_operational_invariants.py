@@ -13,6 +13,9 @@ def test_operation_contract_uses_host_enforced_field_gates():
     assert "execution agent may collect evidence" in text
     assert "its own `passed` or `passed_with_gap` label is not authority" in text
     assert "separately approved, versioned, narrower remediation" in text
+    assert "Scope each phase verdict to that phase's own obligations" in text
+    assert "overall project remains `passed_with_gap`" in text
+    assert "new local failure may not be disguised as inherited" in text
     assert "complete causal tree" in text
 
 
