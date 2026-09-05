@@ -47,6 +47,32 @@ def test_form_e2e_requires_native_result_path_not_manual_dom_proof():
     assert "Do not call the SPA writer manually" in notes
 
 
+def test_schedule_playbook_treats_process_inputs_as_secret_bearing():
+    text = (REFERENCES / "schedules-webhooks.md").read_text(encoding="utf-8")
+    notes = (
+        ROOT / "tools" / "procesio" / "SCHEDULE-INPUT-SECURITY-NOTES.md"
+    ).read_text(encoding="utf-8")
+    handler = (
+        ROOT / "tools" / "procesio" / "handlers" / "schedules.py"
+    ).read_text(encoding="utf-8")
+
+    assert "Literal `processInputs` values may be persisted and returned unmasked" in text
+    assert "treat the schedule GET result as secret-bearing" in text
+    assert "stage the payload through a protected `@file`" in text
+    assert "clean local-file sweep does not prove" in text
+    assert "treat it as disclosed" in text
+    assert "Redact every literal schedule input value" in text
+
+    assert "GET /api/Schedules/{scheduleId}` returns those values without masking" in notes
+    assert "does not automatically redact `processInputs`" in notes
+    assert "a protected `@file`" in notes
+    assert "rotate it" in notes
+    assert "clean local-file sweep alone does not prove" in notes
+
+    assert "SCHEDULE-INPUT-SECURITY-NOTES.md" in handler
+    assert "raw DTO for round-tripping" in handler
+
+
 def test_webhook_playbook_uses_whole_body_model_and_bounded_adapter():
     text = (REFERENCES / "schedules-webhooks.md").read_text(encoding="utf-8")
 
