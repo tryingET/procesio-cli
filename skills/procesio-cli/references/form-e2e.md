@@ -15,7 +15,7 @@ Create or change a PROCESIO form and prove the user-visible behavior, process tr
 1. Fetch the form definition, custom URL, publication/access state, bound processes, and referenced data models.
 2. Inventory tabs, controls, required fields, defaults, dynamic data, upload limits, and events (`onLoad`, submit, click, input, focus/blur, row/pagination events where present).
 3. Read expected process input mappings and resulting user-visible states.
-4. For a synchronous `RUN_PROCESS` event with output mappings, read `tools/procesio/dto/form/RUN-PROCESS-RESULT-NOTES.md`, then inspect the exact process-variable IDs, form field paths, process custom-response mapping, one real process variable-instance shape, and runtime writer contract. A custom response useful to an API caller is not automatically compatible with the form's native output-map writer.
+4. For a synchronous `RUN_PROCESS` event with output mappings, inspect the source-owned form-event result contract maintained beside the form DTO builder when the repository source tree is available. Then inspect the exact process-variable IDs, form field paths, process custom-response mapping, one real process variable-instance shape, and runtime writer contract. A custom response useful to an API caller is not automatically compatible with the form's native output-map writer.
 5. When form JavaScript installs persistent UI behavior, confirm its listeners/timers execute in the parent document realm rather than only in the transient trigger sandbox.
 
 ## Preview and approval
