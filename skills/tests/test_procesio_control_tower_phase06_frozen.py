@@ -198,6 +198,38 @@ def test_existing_phase06_inherited_gap_is_normalized_without_reexecution(tmp_pa
     assert helper._normalize_existing_phase06_report(run_root) is None
 
 
+def test_status_normalization_resumes_after_final_report_was_written(tmp_path):
+    helper = _load()
+    run_root = _completed_phase06_run(tmp_path, helper)
+    recovery_root = run_root / helper.NORMALIZATION_RELATIVE
+    final_archive = recovery_root / "original-final-report.json"
+    final_archive.parent.mkdir(parents=True)
+    original = (run_root / "final-report.json").read_bytes()
+    final_archive.write_bytes(original)
+
+    partial = json.loads(original)
+    partial, _changes = helper._normalize_phase06_nodes(partial)
+    partial["phase06_status_scope"] = {
+        "phase_status": "passed",
+        "aggregate_project_status": "passed_with_gap",
+        "inherited_from_phase": helper.PHASE03_ID,
+        "normalization_record": str(recovery_root / "normalization.json"),
+    }
+    _write(run_root / "final-report.json", partial)
+
+    record = helper._normalize_existing_phase06_report(run_root)
+
+    assert record is not None
+    assert record["phase_status_after"] == "passed"
+    phase06 = json.loads(
+        (run_root / f"phases/{helper.PHASE06_ID}.json").read_text(encoding="utf-8")
+    )
+    assert phase06["status"] == "passed"
+    assert json.loads(final_archive.read_text(encoding="utf-8"))["phase_verdicts"][0][
+        "status"
+    ] == "passed_with_gap"
+
+
 def test_phase06_status_normalization_rejects_a_new_local_gap(tmp_path):
     helper = _load()
     run_root = _completed_phase06_run(tmp_path, helper, local_gap=True)
