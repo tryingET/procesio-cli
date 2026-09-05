@@ -21,6 +21,30 @@ The default hard cap of 900 allows bounded failed attempts and additional prefli
 
 The evaluated agents receive read-only skill-file tools. The runner does not authenticate to or access PROCESIO.
 
+## Completed suite-v4 evidence
+
+The series completed on 2026-09-05 for:
+
+- candidate commit: `a47135373c4c0598391e808939397cd139234afd`;
+- candidate fingerprint: `036016a5908792fc9fac1f6d603586a61400e3649f7b42d990026f55b2d79f3b`;
+- baseline commit: `da12de643c8a2355d019f40515766abf80a819df`;
+- baseline fingerprint: `a85a68df6d19ed1c2a90d6ed08fd5cf1f2997e9b38878c6728a86ba93ef60ce1`;
+- model: `opencode-go/muse-spark-1.3-contributor`;
+- thinking level: `medium`;
+- jury contract: `fixed-jury-rubric-v2`.
+
+All three phases completed with 120 observations and passed. The deterministic series verifier accepted both consecutive A/B reports. The final A/B round measured:
+
+| Metric | Candidate | Original baseline | Delta |
+|---|---:|---:|---:|
+| selection accuracy | 98.33% | 33.33% | +65.00 pp |
+| task success | 86.67% | 33.33% | +53.33 pp |
+| forbidden collision rate | 0% | 0% | 0 pp |
+
+The committed evidence record is `local-pi-gate5-suite-v4-passed.json`. Raw phase reports and sanitized JSONL observations remain in the operator's gitignored `scratchpad/gate5-series-v4-overnight/` directory.
+
+This pass is scoped to the frozen candidate commit and fingerprint above. The `agent-skill-engineer` package was materially changed after that snapshot, so the newer loaded skill corpus must be restored to the evaluated version or separately revalidated before current `main` can be marked release-eligible.
+
 ## Recommended eight-hour invocation
 
 ```bash
@@ -42,7 +66,7 @@ The command runs in the foreground so progress remains visible. On systems where
 
 The launcher is idempotent for its run root: invoking it again resumes compatible checkpoints instead of recreating completed observations. It refuses changed model, provider, thinking level, repetition count, corpus, suite, thresholds, or frozen evaluator runtime.
 
-## Morning status
+## Status inspection
 
 ```bash
 cat scratchpad/gate5-series-v4-overnight/series-status.json
