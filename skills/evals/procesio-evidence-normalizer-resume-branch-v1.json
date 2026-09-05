@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "kind": "procesio-retained-utility-branch-evidence",
+  "recorded_on": "2026-09-05",
+  "provenance": {
+    "source": "operator-provided JSON result from scripts/run-procesio-evidence-normalizer.py",
+    "secret_material_recorded": false
+  },
+  "target": {
+    "profile": "pure-awesomeness",
+    "environment": "Internal-PROD",
+    "workspace": "procesio-cli-pure-awesomeness",
+    "workspace_id": "dc28053d-f701-4880-99c2-7d973899d135"
+  },
+  "process": {
+    "title": "CLI Utility 01 - Evidence Status Normalizer",
+    "process_id": "0528c553-8e17-4185-84cb-11068db503d8",
+    "retained": true
+  },
+  "input": {
+    "status": "paused",
+    "stop_reason": "model_quota_exhausted",
+    "completed_observations": 351,
+    "remaining_observations": 9,
+    "total_observations": 360,
+    "resumable": true,
+    "gate5_evidence": false
+  },
+  "execution": {
+    "instance_id": "82ef6e15-a4dc-4564-b1d0-7ca92558ef2f",
+    "runtime_status": 50,
+    "executions_this_invocation": 1,
+    "retry_performed": false,
+    "ok": true
+  },
+  "observed_output": {
+    "script_error": null,
+    "normalized": {
+      "schema_version": 1,
+      "decision": "RESUME_CHECKPOINT",
+      "complete": false,
+      "gate5_evidence": false,
+      "resumable": true,
+      "status": "paused",
+      "stop_reason": "model_quota_exhausted",
+      "completed_observations": 351,
+      "remaining_observations": 9,
+      "total_observations": 360,
+      "next_action": "Resume the same frozen checkpoint with the same model, rubric, corpus, and settings.",
+      "summary": "RESUME_CHECKPOINT: 351/360 observations complete; remaining=9; stop_reason=model_quota_exhausted"
+    }
+  },
+  "claims_supported": [
+    "the retained process correctly classifies a paused resumable evaluation as RESUME_CHECKPOINT",
+    "the local caller performs one process execution and reads that exact instance output",
+    "the caller does not automatically retry the process execution",
+    "the Node action returned no script error for this branch"
+  ],
+  "claims_not_retested": [
+    "saved process design and dependency inventory were not re-audited during this invocation; those remain supported by procesio-evidence-normalizer-field-v1.json"
+  ]
+}
