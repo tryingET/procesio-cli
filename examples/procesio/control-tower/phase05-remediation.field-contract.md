@@ -63,9 +63,10 @@ That approval authorizes only:
   a whole-body model input; it must be deleted in the same stage;
 - one webhook launch for the repaired acceptance claim;
 - read-only reconciliation, local evidence files, and the original Phase 06 export/audit;
-- at most **three additional process instances** across remediation: one form-triggered
-  Ingest instance plus the webhook adapter and its awaited Ingest child. A direct
-  webhook-to-Ingest solution may use fewer.
+- at most **five additional process instances** across remediation: the form-triggered
+  Ingest instance and its Normalizer child, plus the webhook adapter, its awaited Ingest
+  child, and the Ingest process's Normalizer child. A direct webhook-to-Ingest solution
+  may use fewer.
 
 No additional retained process, form, webhook, schedule, document, data model, data
 store, credential, connector, or public endpoint is authorized. No email, payment,
@@ -137,7 +138,8 @@ stage limit, and `next_stage_safe:true`.
 # Stage 05R-1 — native form-result contract
 
 **Authorized mutations:** edit Ingest Evidence and Mission Control only.
-**Execution budget:** one form submission; one resulting process instance.
+**Execution budget:** one form submission; at most two resulting process instances
+(the Ingest instance and its awaited Normalizer child).
 
 ## Inspect and preserve compatibility
 
@@ -210,7 +212,8 @@ Required checks:
 # Stage 05R-2 — whole-body webhook adapter and complete cleanup
 
 **Authorized temporary mutations:** one webhook and at most one adapter process.
-**Execution budget:** one webhook launch; at most two resulting process instances.
+**Execution budget:** one webhook launch; at most three resulting process instances
+(the adapter, its awaited Ingest child, and the Ingest process's Normalizer child).
 
 The live platform evidence established that a webhook supplies one generated model
 object, not arbitrary per-field primitive bindings. The remediation therefore uses
