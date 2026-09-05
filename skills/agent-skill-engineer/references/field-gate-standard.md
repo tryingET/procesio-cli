@@ -9,6 +9,8 @@ acceptance and remediation; it is not a substitute for the domain playbook.
 A field trial needs the same discipline as a fixed jury. Before any mutation, lock:
 
 - target, scope, stable resource identities, and expected end state;
+- exact agent/model/tool settings and a fingerprint of the complete skill package,
+  including `SKILL.md`, references, scripts, and assets—not only the entrypoint;
 - ordered required check IDs with binary pass conditions;
 - direct proof source for each check;
 - explicitly permitted degraded modes, fallbacks, or gaps;
@@ -133,6 +135,7 @@ reference. The detailed incident remains in evidence, not in the always-loaded s
 Record:
 
 - frozen contract/version and required check IDs;
+- complete skill-package fingerprint plus model/tool settings;
 - target and stable IDs, with secrets removed;
 - model/client/tool versions when they affect execution;
 - permitted gaps and actual gaps;
