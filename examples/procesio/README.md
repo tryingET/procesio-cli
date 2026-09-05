@@ -36,3 +36,22 @@ uv run --script scripts/run-procesio-evidence-normalizer.py \
 Each non-dry invocation performs exactly one synchronous process execution, then reads that exact instance's output. It never retries a timeout or a missing-instance-ID response; those outcomes require instance reconciliation first.
 
 The process intentionally has no webhook or form. The current REST webhook launch path is anonymous and asynchronous, so adding it would expose a public trigger without returning the normalized object directly. Use the scoped local caller unless a separately reviewed authenticated interface is introduced.
+
+## PROCESIO Control Tower
+
+`control-tower/` defines the ambitious retained follow-on project: an Automation Evidence & Founder Briefing Control Tower that reuses the verified normalizer, adds an idempotent native evidence ledger, pulls a read-only public repository pulse, generates a founder PDF, exposes a polished form, proves and removes a temporary webhook, enables a weekly briefing schedule, and exports the verified project.
+
+Preview its six gated phases without model or platform calls:
+
+```bash
+uv run --script scripts/run-procesio-control-tower.py --dry-run
+```
+
+Build or resume with the exact approved contract:
+
+```bash
+uv run --script scripts/run-procesio-control-tower.py \
+  --confirm BUILD_PROCESIO_CONTROL_TOWER_V1
+```
+
+The coordinator defaults to `zai/glm-5.3` with `high` thinking, checks that exact provider/model in the local Pi inventory, runs every phase in a fresh context, and never automatically retries an ambiguous phase exit.
