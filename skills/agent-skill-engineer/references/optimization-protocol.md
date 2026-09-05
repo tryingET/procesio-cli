@@ -210,7 +210,7 @@ Operational skills also require a controlled field task. Record before-state, ex
 
 ## 13. Reproducible controller
 
-Use `scripts/optimize_skill.py` to enforce local experiment state:
+Use the skill's `optimize_skill.py` helper to enforce local experiment state:
 
 ```bash
 python skills/agent-skill-engineer/scripts/optimize_skill.py init \
