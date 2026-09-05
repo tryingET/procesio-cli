@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "kind": "gate5-fixed-jury-series-evidence",
+  "recorded_on": "2026-09-05",
+  "provenance": {
+    "source": "operator-provided final series-status.json from the local Pi evaluation run",
+    "raw_run_root": "scratchpad/gate5-series-v4-overnight",
+    "raw_artifacts_committed": false,
+    "note": "The complete phase reports and sanitized JSONL observations remain in the operator's gitignored local scratchpad. This committed record preserves the final status, fingerprints, phase verdicts, and final-round summary supplied by the operator."
+  },
+  "result": {
+    "status": "complete",
+    "stop_reason": "gate5_series_passed",
+    "gate5_evidence": true,
+    "suite_version": 4,
+    "rubric_contract": "fixed-jury-rubric-v2",
+    "model": "opencode-go/muse-spark-1.3-contributor",
+    "provider": null,
+    "thinking": "medium",
+    "candidate_commit": "a47135373c4c0598391e808939397cd139234afd",
+    "baseline_commit": "da12de643c8a2355d019f40515766abf80a819df",
+    "candidate_fingerprint": "036016a5908792fc9fac1f6d603586a61400e3649f7b42d990026f55b2d79f3b",
+    "baseline_fingerprint": "a85a68df6d19ed1c2a90d6ed08fd5cf1f2997e9b38878c6728a86ba93ef60ce1",
+    "completed_observations": 360,
+    "remaining_observations": 0,
+    "total_observations": 360,
+    "case_count": 12,
+    "repetitions": 5
+  },
+  "phases": [
+    {
+      "id": "aa",
+      "mode": "aa",
+      "observations": 120,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": "ab-round-1",
+      "mode": "ab",
+      "observations": 120,
+      "passed": true,
+      "reasons": []
+    },
+    {
+      "id": "ab-round-2",
+      "mode": "ab",
+      "observations": 120,
+      "passed": true,
+      "reasons": []
+    }
+  ],
+  "series_verification": {
+    "passed": true,
+    "reasons": [],
+    "report_count": 2,
+    "required_consecutive_clean_runs": 2
+  },
+  "ab_round_2_summary": {
+    "candidate": {
+      "runs": 60,
+      "selection_accuracy": 0.9833333333333333,
+      "task_success_rate": 0.8666666666666667,
+      "collision_rate": 0,
+      "duration_ms_mean": 28436.2,
+      "duration_ms_stddev": 19614.73392614168
+    },
+    "baseline": {
+      "runs": 60,
+      "selection_accuracy": 0.3333333333333333,
+      "task_success_rate": 0.3333333333333333,
+      "collision_rate": 0,
+      "duration_ms_mean": 25711.383333333335,
+      "duration_ms_stddev": 8822.071055203282
+    },
+    "selection_accuracy_delta": 0.6499999999999999,
+    "task_success_rate_delta": 0.5333333333333334,
+    "collision_rate_delta": 0
+  },
+  "release_scope": {
+    "evaluated_candidate_commit": "a47135373c4c0598391e808939397cd139234afd",
+    "repository_head_when_recorded": "a12b6e9e92e6ba7584cd347d5a73cf9c73833025",
+    "current_loaded_skill_corpus_matches_evaluated_candidate": false,
+    "reason": "The agent-skill-engineer package was materially changed after the evaluated candidate snapshot. Gate 5 is therefore passed for the frozen candidate, while release eligibility for the newer skill corpus remains blocked until the evaluated package is restored or the changed package is revalidated.",
+    "post_evaluation_loaded_skill_changes": [
+      "skills/agent-skill-engineer/SKILL.md",
+      "skills/agent-skill-engineer/evals/evals.json",
+      "skills/agent-skill-engineer/references/domain-evidence-protocol.md",
+      "skills/agent-skill-engineer/references/optimization-protocol.md",
+      "skills/agent-skill-engineer/references/optimizer-contract.md",
+      "skills/agent-skill-engineer/references/research-basis.md",
+      "skills/agent-skill-engineer/scripts/optimize_skill.py",
+      "skills/agent-skill-engineer/scripts/scaffold_skill.py"
+    ]
+  }
+}
