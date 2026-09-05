@@ -8,25 +8,29 @@
 
 Before importing the staged remediation coordinator, this wrapper snapshots the
 entire ``procesio-cli`` skill package into the gitignored run root and verifies a
-content fingerprint on every resume. The acting agent therefore sees one frozen
-skill corpus, not whichever references happen to be on a later checkout.
+content fingerprint on every resume. The acting agents therefore see one frozen
+skill corpus through remediation and the final Phase 06 audit/export.
 """
 from __future__ import annotations
 
 import hashlib
 import importlib.util
 import json
+import os
 import shutil
 import sys
+import time
 from pathlib import Path
 from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE_SKILL = ROOT / "skills" / "procesio-cli"
 INNER = ROOT / "scripts" / "run-procesio-control-tower-phase05-remediation.py"
+PHASE6 = ROOT / "scripts" / "run-procesio-control-tower-phase06-frozen.py"
 DEFAULT_RUN_ROOT = ROOT / "scratchpad" / "procesio-control-tower-v1"
 SNAPSHOT_RELATIVE = Path("remediation") / "phase05" / "frozen-skill" / "procesio-cli"
 MANIFEST_NAME = "skill-snapshot.json"
+PHASE6_CONFIRMATION = "FINISH_PROCESIO_CONTROL_TOWER_V1_PHASE06"
 
 
 def _run_root(argv: list[str]) -> Path:
@@ -38,6 +42,17 @@ def _run_root(argv: list[str]) -> Path:
         if arg.startswith("--run-root="):
             return Path(arg.split("=", 1)[1]).expanduser().resolve()
     return DEFAULT_RUN_ROOT.resolve()
+
+
+def _arg_value(argv: list[str], name: str, default: str) -> str:
+    for index, arg in enumerate(argv):
+        if arg == name:
+            if index + 1 >= len(argv):
+                raise ValueError(f"{name} requires a value")
+            return argv[index + 1]
+        if arg.startswith(name + "="):
+            return arg.split("=", 1)[1]
+    return default
 
 
 def _files(root: Path) -> list[Path]:
@@ -129,40 +144,110 @@ def _snapshot(run_root: Path) -> Path:
     return snapshot
 
 
-def _load_inner():
-    spec = importlib.util.spec_from_file_location(
-        "run_procesio_control_tower_phase05_remediation", INNER
-    )
+def _load(path: Path, module_name: str):
+    spec = importlib.util.spec_from_file_location(module_name, path)
     if spec is None or spec.loader is None:
-        raise ValueError(f"cannot import remediation coordinator: {INNER}")
+        raise ValueError(f"cannot import coordinator: {path}")
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
     spec.loader.exec_module(module)
     return module
 
 
+def _load_inner():
+    return _load(INNER, "run_procesio_control_tower_phase05_remediation")
+
+
+def _load_phase6():
+    return _load(PHASE6, "run_procesio_control_tower_phase06_frozen")
+
+
+def _emit_error(code: str, message: str) -> int:
+    print(
+        json.dumps(
+            {
+                "error": {
+                    "code": code,
+                    "message": message,
+                    "details": {"automatic_rebuild": False},
+                }
+            },
+            separators=(",", ":"),
+        )
+    )
+    return 2
+
+
 def main(argv: list[str] | None = None) -> int:
     args = list(sys.argv[1:] if argv is None else argv)
+    started = time.monotonic()
     try:
         run_root = _run_root(args)
         snapshot = _snapshot(run_root)
-        module = _load_inner()
-        module.SKILL = snapshot
-        return int(module.main(args))
-    except (OSError, ValueError, json.JSONDecodeError) as exc:
-        print(
-            json.dumps(
-                {
-                    "error": {
-                        "code": "skill_snapshot_error",
-                        "message": str(exc),
-                        "details": {"automatic_rebuild": False},
-                    }
-                },
-                separators=(",", ":"),
-            )
+        inner = _load_inner()
+        inner.SKILL = snapshot
+
+        # Dry-run is already non-mutating and should show the original coordinator's
+        # complete plan. An explicit --no-phase6 remains an intentional stop point.
+        if "--dry-run" in args or "--no-phase6" in args:
+            return int(inner.main(args))
+
+        max_hours = float(_arg_value(args, "--max-hours", "8"))
+        model = _arg_value(
+            args,
+            "--model",
+            os.environ.get("PI_CONTROL_TOWER_MODEL", inner.DEFAULT_MODEL),
         )
-        return 2
+        thinking = _arg_value(
+            args,
+            "--thinking",
+            os.environ.get("PI_CONTROL_TOWER_THINKING", inner.DEFAULT_THINKING),
+        )
+        interactive = "--interactive-approval" in args
+
+        # Let the remediation coordinator repair and promote Phase 05, but prevent
+        # its legacy live-checkout Phase 06 path. The frozen helper owns Phase 06.
+        remediation_args = [*args, "--no-phase6"]
+        code = int(inner.main(remediation_args))
+        if code != 0:
+            return code
+
+        remaining_hours = max_hours - (time.monotonic() - started) / 3600
+        if remaining_hours <= 1 / 60:
+            print(
+                json.dumps(
+                    {
+                        "schema_version": 1,
+                        "state": "paused",
+                        "reason": "Phase 05 is repaired, but less than one minute remains for Phase 06.",
+                        "run_root": str(run_root),
+                        "frozen_skill_root": str(snapshot),
+                    },
+                    separators=(",", ":"),
+                )
+            )
+            return 75
+
+        phase6 = _load_phase6()
+        forwarded = [
+            "--model",
+            model,
+            "--thinking",
+            thinking,
+            "--run-root",
+            str(run_root),
+            "--skill-root",
+            str(snapshot),
+            "--max-hours",
+            str(remaining_hours),
+            "--confirm",
+            PHASE6_CONFIRMATION,
+        ]
+        if interactive:
+            forwarded.append("--interactive-approval")
+        return int(phase6.main(forwarded))
+    except (OSError, ValueError, json.JSONDecodeError) as exc:
+        return _emit_error("skill_snapshot_or_coordination_error", str(exc))
 
 
 if __name__ == "__main__":
