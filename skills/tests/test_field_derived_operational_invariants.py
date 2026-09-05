@@ -22,7 +22,7 @@ def test_process_lifecycle_preserves_callers_and_counts_children():
     assert "snapshot its public variable IDs" in text
     assert "Preserve existing public input/output IDs" in text
     assert "complete parent/child tree" in text
-    assert "rerun only the missing acceptance path" in text
+    assert "remediation for only the missing path" in text
 
 
 def test_form_e2e_requires_native_result_path_not_manual_dom_proof():
